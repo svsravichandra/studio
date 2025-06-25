@@ -2,7 +2,7 @@
 'use client';
 
 import Link from 'next/link';
-import { User, ShoppingCart, LogOut, LayoutGrid } from 'lucide-react';
+import { User, ShoppingCart, LogOut, LayoutGrid, Fingerprint } from 'lucide-react';
 import { useAuth } from '@/context/auth-context';
 import { Button } from '@/components/ui/button';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
@@ -18,7 +18,7 @@ import { useCart } from '@/context/cart-context';
 import { Badge } from '@/components/ui/badge';
 
 export function Header() {
-  const { user, signOut } = useAuth();
+  const { user, signOut, isAdmin } = useAuth();
   const { totalItems } = useCart();
 
   return (
@@ -53,6 +53,14 @@ export function Header() {
                     </div>
                   </DropdownMenuLabel>
                   <DropdownMenuSeparator />
+                  {isAdmin && (
+                    <DropdownMenuItem asChild>
+                        <Link href="/admin">
+                            <Fingerprint className="mr-2 h-4 w-4" />
+                            <span>Admin Panel</span>
+                        </Link>
+                    </DropdownMenuItem>
+                  )}
                   <DropdownMenuItem asChild>
                     <Link href="/dashboard">
                       <LayoutGrid className="mr-2 h-4 w-4" />

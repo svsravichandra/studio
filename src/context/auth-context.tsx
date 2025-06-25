@@ -20,6 +20,7 @@ import { doc, setDoc, getDoc } from 'firebase/firestore';
 
 interface AuthContextType {
   user: User | null;
+  isAdmin: boolean;
   loading: boolean;
   signInWithEmail: (email: string, pass: string) => Promise<void>;
   signUpWithEmail: (name: string, email: string, pass: string) => Promise<void>;
@@ -50,7 +51,7 @@ const getFirebaseAuthErrorMessage = (error: AuthError): string => {
 }
 
 const createUserProfileDocument = async (user: User) => {
-    if (!db) return;
+    if (!db) return null;
     const userRef = doc(db, 'users', user.uid);
     const snapshot = await getDoc(userRef);
 
@@ -63,15 +64,20 @@ const createUserProfileDocument = async (user: User) => {
                 email,
                 photoURL,
                 createdAt,
+                role: 'user' // Default role
             });
+            return await getDoc(userRef);
         } catch (error) {
             console.error("Error creating user document", error);
+            return null;
         }
     }
+    return snapshot;
 };
 
 export const AuthProvider = ({ children }: { children: ReactNode }) => {
   const [user, setUser] = useState<User | null>(null);
+  const [isAdmin, setIsAdmin] = useState(false);
   const [loading, setLoading] = useState(true);
   const router = useRouter();
   const authInitialized = !!auth;
@@ -84,7 +90,14 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
 
     const unsubscribe = onAuthStateChanged(auth, async (user) => {
       if (user) {
-        await createUserProfileDocument(user);
+        const userProfileDoc = await createUserProfileDocument(user);
+        if (userProfileDoc?.data()?.role === 'admin') {
+            setIsAdmin(true);
+        } else {
+            setIsAdmin(false);
+        }
+      } else {
+          setIsAdmin(false);
       }
       setUser(user);
       setLoading(false);
@@ -151,13 +164,14 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
 
   const value = useMemo(() => ({ 
       user, 
+      isAdmin,
       loading, 
       signInWithEmail, 
       signUpWithEmail, 
       signInWithGoogle, 
       signOut, 
       authInitialized 
-  }), [user, loading, signInWithEmail, signUpWithEmail, signInWithGoogle, signOut, authInitialized]);
+  }), [user, isAdmin, loading, signInWithEmail, signUpWithEmail, signInWithGoogle, signOut, authInitialized]);
 
   return (
     <AuthContext.Provider value={value}>

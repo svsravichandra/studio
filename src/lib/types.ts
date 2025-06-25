@@ -19,6 +19,7 @@ export interface OrderItem extends Product {
 
 export interface Order {
     id: string;
+    userId: string; // Keep track of which user this order belongs to
     date: string;
     status: 'Processing' | 'Shipped' | 'Delivered' | 'Cancelled';
     total: number;
@@ -32,4 +33,13 @@ export interface Subscription {
     nextBillingDate: string;
     products: OrderItem[];
     total: number;
+}
+
+export interface UserProfile {
+    uid: string;
+    displayName: string;
+    email: string;
+    photoURL: string;
+    role: 'admin' | 'user';
+    createdAt: string;
 }
