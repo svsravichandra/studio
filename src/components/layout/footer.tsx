@@ -20,7 +20,7 @@ export function Footer() {
             <h5 className="font-headline uppercase tracking-widest text-primary">Shop</h5>
             <ul className="mt-4 space-y-2 text-sm">
               <li><Link href="/products" className="text-muted-foreground hover:text-foreground">All Products</Link></li>
-              <li><a href="#" className="text-muted-foreground hover:text-foreground">The Gritbox Subscription</a></li>
+              <li><Link href="/dashboard/subscriptions" className="text-muted-foreground hover:text-foreground">The Gritbox Subscription</Link></li>
             </ul>
           </div>
           <div>

@@ -26,7 +26,7 @@ async function getFeaturedProducts(): Promise<{ products: Product[] } | { error:
     });
     return { products };
   } catch (error: any) {
-    console.error("Error fetching featured products: ", error);
+    console.error("Error fetching featured products: ", error.message);
     return { error: `Failed to fetch featured products. Details: ${error.message}` };
   }
 }
@@ -126,7 +126,9 @@ export default async function Home() {
                 <li className="flex items-center"><Check className="h-5 w-5 text-primary mr-3" /> Free shipping always</li>
               </ul>
               <div className="mt-8 flex gap-4">
-                <Button size="lg" className="bg-primary hover:bg-primary/80 uppercase tracking-widest">Start my Gritbox - $20/month</Button>
+                <Link href="/dashboard/subscriptions">
+                  <Button size="lg" className="bg-primary hover:bg-primary/80 uppercase tracking-widest">Start my Gritbox - $20/month</Button>
+                </Link>
                 <Button size="lg" variant="outline" className="uppercase tracking-widest">Learn More</Button>
               </div>
             </div>
