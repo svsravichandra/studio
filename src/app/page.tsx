@@ -27,22 +27,20 @@ export default function Home() {
       </header>
 
       <main className="flex-grow">
-        <section id="home" className="relative h-[70vh] flex items-center justify-center text-center text-white">
+        <section id="home" className="relative h-[70vh] text-center text-white">
           <Image
             src="https://placehold.co/1600x900.png"
             alt="Man standing on a path in a sunlit forest"
             fill
-            objectFit="cover"
-            className="absolute inset-0 z-0 object-cover"
+            className="object-cover"
             data-ai-hint="man forest"
             priority
           />
-          <div className="absolute inset-0 bg-black/60 z-10"></div>
-          <div className="relative z-20 p-4">
+          <div className="relative z-10 flex h-full flex-col items-center justify-center bg-black/60 p-4">
             <h1 className="text-5xl md:text-7xl font-headline uppercase">
               Built for the <span className="text-primary">Rugged</span> Man
             </h1>
-            <p className="mt-4 max-w-2xl mx-auto text-lg text-muted-foreground">
+            <p className="mt-4 max-w-2xl mx-auto text-lg text-white/80">
               Premium handcrafted body soap engineered for men who work hard and live harder. Made with nature’s most powerful ingredients.
             </p>
             <div className="mt-8 flex justify-center gap-4">
