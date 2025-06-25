@@ -1,11 +1,19 @@
+
 'use client';
 
 import Link from "next/link";
+import { useState } from "react";
+import { useForm } from "react-hook-form";
+import { zodResolver } from "@hookform/resolvers/zod";
+import * as z from "zod";
+
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from "@/components/ui/form";
 import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
 import { useAuth } from "@/context/auth-context";
+import { Loader2 } from "lucide-react";
+import { useToast } from "@/hooks/use-toast";
 
 const GoogleIcon = (props: React.SVGProps<SVGSVGElement>) => (
     <svg role="img" viewBox="0 0 24 24" {...props} xmlns="http://www.w3.org/2000/svg">
@@ -16,8 +24,39 @@ const GoogleIcon = (props: React.SVGProps<SVGSVGElement>) => (
     </svg>
   );
 
+const formSchema = z.object({
+    email: z.string().email({ message: "Please enter a valid email." }),
+    password: z.string().min(1, { message: "Password is required." }),
+});
+
 export default function LoginPage() {
-  const { signInWithGoogle, authInitialized } = useAuth();
+  const { signInWithGoogle, signInWithEmail, authInitialized } = useAuth();
+  const [isLoading, setIsLoading] = useState(false);
+  const { toast } = useToast();
+
+  const form = useForm<z.infer<typeof formSchema>>({
+    resolver: zodResolver(formSchema),
+    defaultValues: {
+      email: "",
+      password: "",
+    },
+  });
+
+  async function onSubmit(values: z.infer<typeof formSchema>) {
+    setIsLoading(true);
+    try {
+        await signInWithEmail(values.email, values.password);
+        // The context handles redirection on success.
+    } catch (error: any) {
+        toast({
+            title: "Sign In Failed",
+            description: error.message,
+            variant: "destructive",
+        })
+    } finally {
+        setIsLoading(false);
+    }
+  }
 
   return (
     <div className="flex items-center justify-center py-12 px-4">
@@ -27,24 +66,45 @@ export default function LoginPage() {
           <CardDescription>to continue to Grit & Co.</CardDescription>
         </CardHeader>
         <CardContent>
-          <div className="space-y-4">
-            <div className="space-y-2">
-              <Label htmlFor="email">Email</Label>
-              <Input id="email" type="email" placeholder="john@example.com" required className="bg-background"/>
-            </div>
-            <div className="space-y-2">
-              <div className="flex items-center">
-                <Label htmlFor="password">Password</Label>
-                <Link href="#" className="ml-auto inline-block text-sm underline hover:text-primary">
-                  Forgot password?
-                </Link>
-              </div>
-              <Input id="password" type="password" required className="bg-background"/>
-            </div>
-            <Button type="submit" className="w-full uppercase tracking-widest">
-              Sign In
-            </Button>
-          </div>
+          <Form {...form}>
+            <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
+              <FormField
+                control={form.control}
+                name="email"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Email</FormLabel>
+                    <FormControl>
+                      <Input placeholder="john@example.com" {...field} className="bg-background" />
+                    </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+              <FormField
+                control={form.control}
+                name="password"
+                render={({ field }) => (
+                  <FormItem>
+                    <div className="flex items-center">
+                        <FormLabel>Password</FormLabel>
+                        <Link href="#" className="ml-auto inline-block text-sm underline hover:text-primary">
+                            Forgot password?
+                        </Link>
+                    </div>
+                    <FormControl>
+                      <Input type="password" {...field} className="bg-background" />
+                    </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+              <Button type="submit" className="w-full uppercase tracking-widest" disabled={isLoading || !authInitialized}>
+                 {isLoading && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+                Sign In
+              </Button>
+            </form>
+          </Form>
           
           <div className="relative my-6">
             <div className="absolute inset-0 flex items-center">
@@ -57,13 +117,13 @@ export default function LoginPage() {
             </div>
           </div>
 
-          <Button variant="outline" className="w-full" onClick={signInWithGoogle} disabled={!authInitialized}>
+          <Button variant="outline" className="w-full" onClick={signInWithGoogle} disabled={isLoading || !authInitialized}>
             <GoogleIcon className="mr-2 h-4 w-4" />
             Google
           </Button>
           {!authInitialized && (
             <p className="mt-2 text-xs text-center text-muted-foreground">
-              Google Sign-In is currently unavailable.
+              Authentication is currently unavailable.
             </p>
           )}
 
