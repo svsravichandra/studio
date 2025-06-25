@@ -29,11 +29,10 @@ export default function Home() {
       <main className="flex-grow">
         <section id="home" className="relative h-[70vh] text-center text-white">
           <Image
-            src="https://placehold.co/1600x900.png"
+            src="/hero-background.jpg"
             alt="Man standing on a path in a sunlit forest"
             fill
             className="object-cover"
-            data-ai-hint="man forest"
             priority
           />
           <div className="absolute inset-0 bg-black/60 z-10" />
