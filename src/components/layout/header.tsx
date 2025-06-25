@@ -15,7 +15,7 @@ import {
 } from "@/components/ui/dropdown-menu";
 
 export function Header() {
-  const { user, signOut, authInitialized } = useAuth();
+  const { user, signOut } = useAuth();
 
   return (
     <header className="sticky top-0 z-50 bg-background/80 backdrop-blur-sm">
@@ -29,7 +29,7 @@ export function Header() {
             <a href="/#recommendations" className="text-sm uppercase tracking-widest hover:text-primary transition-colors">Recommend</a>
           </nav>
           <div className="flex items-center space-x-4">
-            {authInitialized && user ? (
+            {user ? (
                <DropdownMenu>
                 <DropdownMenuTrigger asChild>
                   <Button variant="ghost" className="relative h-8 w-8 rounded-full">
@@ -55,9 +55,9 @@ export function Header() {
                   </DropdownMenuItem>
                 </DropdownMenuContent>
               </DropdownMenu>
-            ) : authInitialized ? (
+            ) : (
               <Link href="/login" className="hover:text-primary transition-colors"><User className="h-5 w-5" /></Link>
-            ) : null}
+            )}
             <Link href="/cart" className="hover:text-primary transition-colors"><ShoppingCart className="h-5 w-5" /></Link>
           </div>
         </div>
