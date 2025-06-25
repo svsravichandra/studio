@@ -13,9 +13,12 @@ async function getFeaturedProducts(): Promise<{ products: Product[] } | { error:
     return { error: "Database connection failed. Please ensure your Firebase environment variables are set correctly." };
   }
   try {
+    console.log("Attempting to fetch featured products from 'products' collection...");
     const productsRef = collection(db, "products");
     const q = query(productsRef, where("featured", "==", true));
     const querySnapshot = await getDocs(q);
+
+    console.log(`Firestore featured products query returned ${querySnapshot.size} documents.`);
 
     const products: Product[] = [];
     querySnapshot.forEach((doc) => {
@@ -102,7 +105,7 @@ export default async function Home() {
           {'error' in result ? (
             <div className="mt-12 text-center py-16 text-destructive-foreground bg-destructive/20 p-6 rounded-lg">
                 <h3 className="text-2xl font-headline uppercase mb-2">Error Loading Products</h3>
-                <p>{result.error}</p>
+                <p className="font-mono text-left bg-background/50 p-4 rounded-md whitespace-pre-wrap">{result.error}</p>
             </div>
            ) : (
             <FeaturedProducts products={result.products} />

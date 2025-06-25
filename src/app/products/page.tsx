@@ -5,14 +5,17 @@ import { ProductList } from "./product-list";
 
 async function getProducts(): Promise<{ products: Product[] } | { error: string }> {
   if (!db) {
-    return { error: "Database connection failed. Please ensure your Firebase environment variables are set correctly in the .env file." };
+    return { error: "Database connection failed. Please ensure your Firebase environment variables are set correctly in the .env file and that the server has been restarted." };
   }
   try {
+    console.log("Attempting to fetch products from 'products' collection...");
     const productsRef = collection(db, "products");
     const querySnapshot = await getDocs(productsRef);
     
+    console.log(`Firestore query returned ${querySnapshot.size} documents.`);
+
     if (querySnapshot.empty) {
-      return { products: [] };
+      return { error: "Query successful, but no products were found in the 'products' collection. Please check your Firestore database to ensure you have added documents to this specific collection and that they are not empty." };
     }
 
     const productsData: Product[] = [];
@@ -22,7 +25,7 @@ async function getProducts(): Promise<{ products: Product[] } | { error: string 
     return { products: productsData };
   } catch (error: any) {
     console.error("Error fetching products: ", error);
-    return { error: `Failed to fetch products from the database. Please check Firestore security rules and configuration. Details: ${error.message}` };
+    return { error: `Failed to fetch products from the database. This could be due to Firestore security rules or a configuration issue. Please check your server logs for the full error details. Error: ${error.message}` };
   }
 }
 
@@ -41,7 +44,7 @@ export default async function ProductsPage() {
         {'error' in result ? (
           <div className="text-center py-16 text-destructive-foreground bg-destructive/20 p-6 rounded-lg">
             <h3 className="text-2xl font-headline uppercase mb-2">Error Loading Products</h3>
-            <p>{result.error}</p>
+            <p className="font-mono text-left bg-background/50 p-4 rounded-md whitespace-pre-wrap">{result.error}</p>
           </div>
         ) : result.products.length > 0 ? (
            <ProductList products={result.products} />
