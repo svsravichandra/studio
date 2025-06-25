@@ -8,33 +8,75 @@ import { Separator } from "@/components/ui/separator";
 import { useCart } from "@/context/cart-context";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { useEffect } from "react";
+import { useEffect, useState } from "react";
+import { useAuth } from "@/context/auth-context";
+import { db } from "@/lib/firebase";
+import { collection, addDoc, serverTimestamp } from "firebase/firestore";
+import { useToast } from "@/hooks/use-toast";
+import { Loader2 } from "lucide-react";
 
 export default function CheckoutPage() {
   const { cartItems, subtotal, clearCart } = useCart();
+  const { user, loading: authLoading } = useAuth();
+  const { toast } = useToast();
   const router = useRouter();
+  const [isProcessing, setIsProcessing] = useState(false);
 
   useEffect(() => {
-    if(cartItems.length === 0) {
+    if (!authLoading && cartItems.length === 0) {
       router.push('/products');
     }
-  }, [cartItems, router]);
+  }, [cartItems, router, authLoading]);
 
   const shipping = cartItems.length > 0 ? 5.00 : 0;
   const total = subtotal + shipping;
   
-  const handlePlaceOrder = () => {
-    // In a real application, you would process the payment here.
-    alert('Order placed successfully! (This is a demo)');
-    clearCart();
-    router.push('/');
+  const handlePlaceOrder = async () => {
+    if (!user || !db) {
+        toast({
+            title: "Error",
+            description: "You must be logged in to place an order.",
+            variant: "destructive"
+        });
+        return;
+    }
+
+    setIsProcessing(true);
+
+    try {
+        const ordersRef = collection(db, `users/${user.uid}/orders`);
+        await addDoc(ordersRef, {
+            createdAt: serverTimestamp(),
+            status: 'Processing',
+            items: cartItems,
+            subtotal,
+            shipping,
+            total,
+        });
+
+        toast({
+            title: "Order Placed!",
+            description: "Your order has been successfully placed.",
+        });
+        clearCart();
+        router.push('/dashboard/orders');
+    } catch (error) {
+        console.error("Error placing order: ", error);
+        toast({
+            title: "Order Failed",
+            description: "There was an issue placing your order. Please try again.",
+            variant: "destructive"
+        });
+    } finally {
+        setIsProcessing(false);
+    }
   }
 
-  if (cartItems.length === 0) {
+  if (cartItems.length === 0 || authLoading) {
     return (
       <div className="container mx-auto px-4 py-16 text-center">
-        <h1 className="text-2xl font-headline">Redirecting...</h1>
-        <p className="text-muted-foreground">Your cart is empty.</p>
+        <Loader2 className="h-8 w-8 animate-spin mx-auto text-primary" />
+        <p className="text-muted-foreground mt-4">Loading checkout...</p>
       </div>
     );
   }
@@ -51,7 +93,7 @@ export default function CheckoutPage() {
             <CardContent className="space-y-4">
               <div className="space-y-2">
                 <Label htmlFor="name">Full Name</Label>
-                <Input id="name" placeholder="John Doe" className="bg-background" />
+                <Input id="name" placeholder="John Doe" defaultValue={user?.displayName || ''} className="bg-background" />
               </div>
               <div className="space-y-2">
                 <Label htmlFor="address">Address</Label>
@@ -138,7 +180,8 @@ export default function CheckoutPage() {
                   <span className="text-primary">${total.toFixed(2)}</span>
                 </div>
               </div>
-              <Button size="lg" className="w-full mt-6 uppercase tracking-widest" onClick={handlePlaceOrder}>
+              <Button size="lg" className="w-full mt-6 uppercase tracking-widest" onClick={handlePlaceOrder} disabled={isProcessing}>
+                {isProcessing && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
                 Place Order
               </Button>
             </CardContent>

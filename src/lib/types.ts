@@ -6,6 +6,7 @@ export interface Product {
   price: number;
   image: string;
   hint: string;
+  featured?: boolean;
 }
 
 export interface CartItem extends Product {

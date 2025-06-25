@@ -1,5 +1,6 @@
 import { initializeApp, getApps, getApp, type FirebaseApp } from "firebase/app";
 import { getAuth, type Auth } from "firebase/auth";
+import { getFirestore, type Firestore } from "firebase/firestore";
 
 const firebaseConfig = {
   apiKey: process.env.NEXT_PUBLIC_FIREBASE_API_KEY,
@@ -12,6 +13,7 @@ const firebaseConfig = {
 
 let app: FirebaseApp | null = null;
 let auth: Auth | null = null;
+let db: Firestore | null = null;
 
 // Conditionally initialize Firebase.
 // If the API key is missing, the app will not crash, and auth features will be disabled.
@@ -19,12 +21,14 @@ if (firebaseConfig.apiKey && firebaseConfig.projectId) {
   try {
     app = getApps().length ? getApp() : initializeApp(firebaseConfig);
     auth = getAuth(app);
+    db = getFirestore(app);
   } catch (e) {
     console.error('Firebase initialization error', e);
     // Fallback to null if initialization fails
     app = null;
     auth = null;
+    db = null;
   }
 }
 
-export { app, auth };
+export { app, auth, db };

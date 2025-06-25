@@ -13,8 +13,10 @@ import {
     updateProfile,
     AuthError
 } from 'firebase/auth';
-import { auth } from '@/lib/firebase';
+import { auth, db } from '@/lib/firebase';
 import { useRouter } from 'next/navigation';
+import { doc, setDoc, getDoc } from 'firebase/firestore';
+
 
 interface AuthContextType {
   user: User | null;
@@ -48,6 +50,28 @@ const getFirebaseAuthErrorMessage = (error: AuthError): string => {
     }
 }
 
+// Creates a user document in Firestore after sign-up
+const createUserProfileDocument = async (user: User) => {
+    if (!db) return;
+    const userRef = doc(db, 'users', user.uid);
+    const snapshot = await getDoc(userRef);
+
+    if (!snapshot.exists()) {
+        const { displayName, email, photoURL } = user;
+        const createdAt = new Date();
+        try {
+            await setDoc(userRef, {
+                displayName,
+                email,
+                photoURL,
+                createdAt,
+            });
+        } catch (error) {
+            console.error("Error creating user document", error);
+        }
+    }
+};
+
 export const AuthProvider = ({ children }: { children: ReactNode }) => {
   const [user, setUser] = useState<User | null>(null);
   const [loading, setLoading] = useState(true);
@@ -60,7 +84,10 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
       return;
     }
 
-    const unsubscribe = onAuthStateChanged(auth, (user) => {
+    const unsubscribe = onAuthStateChanged(auth, async (user) => {
+      if (user) {
+        await createUserProfileDocument(user);
+      }
       setUser(user);
       setLoading(false);
     });
@@ -89,7 +116,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     try {
         const userCredential = await createUserWithEmailAndPassword(auth, email, pass);
         await updateProfile(userCredential.user, { displayName: name });
-        // Manually update user state to reflect display name immediately
+        await createUserProfileDocument(userCredential.user);
         setUser(auth.currentUser); 
         router.push('/dashboard');
     } catch (error) {

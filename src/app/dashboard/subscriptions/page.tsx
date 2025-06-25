@@ -6,6 +6,12 @@ import { Badge } from "@/components/ui/badge";
 import { type Subscription } from "@/lib/types";
 import Image from "next/image";
 import { Separator } from "@/components/ui/separator";
+import { useAuth } from "@/context/auth-context";
+import { useEffect, useState } from "react";
+import { doc, getDoc } from "firebase/firestore";
+import { db } from "@/lib/firebase";
+import { Loader2 } from "lucide-react";
+
 
 const mockSubscription: Subscription = {
   id: 'sub_123abc',
@@ -21,6 +27,42 @@ const mockSubscription: Subscription = {
 }
 
 export default function SubscriptionsPage() {
+    const { user } = useAuth();
+    // For now, we will continue using mock data for subscriptions as it's a more complex system.
+    // We can implement this in a future step.
+    const [subscription, setSubscription] = useState<Subscription | null>(mockSubscription);
+    const [isLoading, setIsLoading] = useState(false);
+
+    if (isLoading) {
+        return (
+            <Card className="bg-card border-border/50">
+                <CardHeader>
+                    <CardTitle className="font-headline uppercase text-2xl">Gritbox Subscription</CardTitle>
+                    <CardDescription>Manage your monthly soap delivery.</CardDescription>
+                </CardHeader>
+                <CardContent className="flex justify-center items-center h-40">
+                    <Loader2 className="h-8 w-8 animate-spin text-primary" />
+                </CardContent>
+            </Card>
+        );
+    }
+    
+    if (!subscription) {
+        return (
+             <Card className="bg-card border-border/50">
+                <CardHeader>
+                    <CardTitle className="font-headline uppercase text-2xl">Gritbox Subscription</CardTitle>
+                    <CardDescription>Manage your monthly soap delivery.</CardDescription>
+                </CardHeader>
+                <CardContent className="text-center py-12 text-muted-foreground">
+                    <p>You do not have an active subscription.</p>
+                    <Button className="mt-4">Start a Gritbox Subscription</Button>
+                </CardContent>
+            </Card>
+        );
+    }
+
+
   return (
     <Card className="bg-card border-border/50">
       <CardHeader>
@@ -29,8 +71,8 @@ export default function SubscriptionsPage() {
                 <CardTitle className="font-headline uppercase text-2xl">Gritbox Subscription</CardTitle>
                 <CardDescription>Manage your monthly soap delivery.</CardDescription>
             </div>
-            <Badge variant={mockSubscription.status === 'Active' ? 'default' : 'secondary'} className="text-base">
-                {mockSubscription.status}
+            <Badge variant={subscription.status === 'Active' ? 'default' : 'secondary'} className="text-base">
+                {subscription.status}
             </Badge>
         </div>
       </CardHeader>
@@ -39,7 +81,7 @@ export default function SubscriptionsPage() {
             <div>
                 <h4 className="font-headline uppercase">Current Products</h4>
                 <div className="mt-2 space-y-3">
-                    {mockSubscription.products.map(item => (
+                    {subscription.products.map(item => (
                         <div key={item.id} className="flex items-center gap-3">
                             <Image src={item.image} alt={item.name} width={50} height={50} className="rounded-md" data-ai-hint={item.hint}/>
                             <p className="flex-grow">{item.name}</p>
@@ -53,15 +95,15 @@ export default function SubscriptionsPage() {
                 <div className="mt-2 space-y-2 text-sm">
                     <div className="flex justify-between">
                         <span className="text-muted-foreground">Frequency:</span>
-                        <span>{mockSubscription.frequency}</span>
+                        <span>{subscription.frequency}</span>
                     </div>
                      <div className="flex justify-between">
                         <span className="text-muted-foreground">Next Billing Date:</span>
-                        <span>{mockSubscription.nextBillingDate}</span>
+                        <span>{subscription.nextBillingDate}</span>
                     </div>
                      <div className="flex justify-between font-bold">
                         <span className="text-muted-foreground">Monthly Total:</span>
-                        <span>${mockSubscription.total.toFixed(2)}</span>
+                        <span>${subscription.total.toFixed(2)}</span>
                     </div>
                 </div>
             </div>
