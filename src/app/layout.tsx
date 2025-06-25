@@ -21,8 +21,8 @@ export default function RootLayout({
   children: React.ReactNode;
 }>) {
   return (
-    <html lang="en" className={`${inter.variable} ${oswald.variable} scroll-smooth`} suppressHydrationWarning>
-      <body className="font-body bg-background text-foreground antialiased flex flex-col min-h-screen">
+    <html lang="en" className={`${inter.variable} ${oswald.variable} scroll-smooth`}>
+      <body className="font-body bg-background text-foreground antialiased flex flex-col min-h-screen" suppressHydrationWarning>
         <AuthProvider>
           <CartProvider>
             <Header />
