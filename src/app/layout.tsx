@@ -1,10 +1,14 @@
 import type { Metadata } from 'next';
 import './globals.css';
 import { Toaster } from '@/components/ui/toaster';
+import { Inter, Oswald } from 'next/font/google';
+
+const inter = Inter({ subsets: ['latin'], variable: '--font-inter' });
+const oswald = Oswald({ subsets: ['latin'], weight: '700', variable: '--font-oswald' });
 
 export const metadata: Metadata = {
-  title: 'Grizzly & Oak',
-  description: 'Handcrafted soaps and grooming essentials for the modern man.',
+  title: 'Grit & Co.',
+  description: 'Premium handcrafted soap engineered for men.',
 };
 
 export default function RootLayout({
@@ -13,13 +17,8 @@ export default function RootLayout({
   children: React.ReactNode;
 }>) {
   return (
-    <html lang="en" className="scroll-smooth">
-      <head>
-        <link rel="preconnect" href="https://fonts.googleapis.com" />
-        <link rel="preconnect" href="https://fonts.gstatic.com" crossOrigin="anonymous" />
-        <link href="https://fonts.googleapis.com/css2?family=Alegreya:wght@400;700&family=Belleza&display=swap" rel="stylesheet" />
-      </head>
-      <body className="font-body antialiased">
+    <html lang="en" className={`${inter.variable} ${oswald.variable} scroll-smooth`}>
+      <body className="font-body bg-background text-foreground antialiased">
         {children}
         <Toaster />
       </body>
