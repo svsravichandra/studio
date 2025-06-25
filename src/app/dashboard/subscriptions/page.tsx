@@ -3,19 +3,22 @@
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import { type Subscription } from "@/lib/types";
+import { type OrderItem, type Subscription } from "@/lib/types";
 import Image from "next/image";
 import { Separator } from "@/components/ui/separator";
 import { useAuth } from "@/context/auth-context";
 import { useEffect, useState } from "react";
-import { doc, getDoc } from "firebase/firestore";
+import { doc, getDoc, setDoc } from "firebase/firestore";
 import { db } from "@/lib/firebase";
 import { Loader2 } from "lucide-react";
+import { useToast } from "@/hooks/use-toast";
 
 export default function SubscriptionsPage() {
     const { user } = useAuth();
+    const { toast } = useToast();
     const [subscription, setSubscription] = useState<Subscription | null>(null);
     const [isLoading, setIsLoading] = useState(true);
+    const [isCreating, setIsCreating] = useState(false);
 
     useEffect(() => {
       const fetchSubscription = async () => {
@@ -23,9 +26,6 @@ export default function SubscriptionsPage() {
             setIsLoading(false);
             return;
         };
-
-        // For this example, we assume a user has one subscription document with a fixed ID.
-        // A real app might have a list of subscriptions.
         const subRef = doc(db, `users/${user.uid}/subscriptions`, 'active_subscription');
         try {
             const docSnap = await getDoc(subRef);
@@ -43,6 +43,48 @@ export default function SubscriptionsPage() {
       }
       fetchSubscription();
     }, [user]);
+
+    const createDefaultSubscription = async () => {
+        if (!user || !db) return;
+
+        setIsCreating(true);
+        const nextBillingDate = new Date();
+        nextBillingDate.setMonth(nextBillingDate.getMonth() + 1);
+
+        const products: OrderItem[] = [
+            { id: 'scrubby-grit', name: 'Scrubby Grit', description: 'Coffee & ground oats for a rugged, energizing morning scrub.', price: 8.00, image: 'https://placehold.co/400x400.png', hint: 'coffee soap', quantity: 2 },
+            { id: 'whiskey-oak', name: 'Whiskey Oak', description: 'Deep woody notes with an enticing and intoxicating aroma.', price: 9.00, image: 'https://placehold.co/400x400.png', hint: 'whiskey soap', quantity: 1 },
+        ];
+        
+        const total = products.reduce((acc, item) => acc + item.price * item.quantity, 0);
+
+        const defaultSubscription: Omit<Subscription, 'id'> = {
+            status: 'Active',
+            frequency: 'Monthly',
+            nextBillingDate: nextBillingDate.toISOString(),
+            products: products,
+            total: total,
+        };
+
+        try {
+            const subRef = doc(db, `users/${user.uid}/subscriptions`, 'active_subscription');
+            await setDoc(subRef, defaultSubscription);
+            setSubscription({ id: 'active_subscription', ...defaultSubscription });
+            toast({
+                title: "Subscription Started!",
+                description: "Your Gritbox is now active."
+            });
+        } catch (error) {
+            console.error("Error creating subscription:", error);
+            toast({
+                title: "Error",
+                description: "Could not start your subscription. Please try again.",
+                variant: "destructive",
+            });
+        } finally {
+            setIsCreating(false);
+        }
+    };
 
     if (isLoading) {
         return (
@@ -67,7 +109,10 @@ export default function SubscriptionsPage() {
                 </CardHeader>
                 <CardContent className="text-center py-12 text-muted-foreground">
                     <p>You do not have an active subscription.</p>
-                    <Button className="mt-4">Start a Gritbox Subscription</Button>
+                    <Button className="mt-4" onClick={createDefaultSubscription} disabled={isCreating}>
+                        {isCreating && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+                        Start a Gritbox Subscription
+                    </Button>
                 </CardContent>
             </Card>
         );

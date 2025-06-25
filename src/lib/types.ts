@@ -25,15 +25,11 @@ export interface Order {
     items: OrderItem[];
 }
 
-export interface SubscriptionProduct extends Product {
-    quantity: number;
-}
-
 export interface Subscription {
     id: string;
     status: 'Active' | 'Paused' | 'Cancelled';
     frequency: 'Monthly' | 'Quarterly';
     nextBillingDate: string;
-    products: SubscriptionProduct[];
+    products: OrderItem[];
     total: number;
 }
