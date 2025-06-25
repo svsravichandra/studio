@@ -30,7 +30,7 @@ export default function Home() {
         <section 
           id="home" 
           className="relative h-[70vh] bg-cover bg-center text-center text-white" 
-          style={{ backgroundImage: "url('/hero-background.jpg')" }}
+          style={{ backgroundImage: "url('/hero-background.png')" }}
         >
           <div className="absolute inset-0 bg-black/60 z-10" />
           <div className="relative z-20 flex h-full flex-col items-center justify-center p-4">
