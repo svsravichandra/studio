@@ -4,34 +4,34 @@ import { useState } from 'react';
 import { useForm, type SubmitHandler } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
+import Image from 'next/image';
 import { Textarea } from '@/components/ui/textarea';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from '@/components/ui/form';
-import { Loader2, Sparkles, Leaf } from 'lucide-react';
+import { Loader2, Sparkles, ShoppingCart } from 'lucide-react';
 import { getRecommendationsAction } from '@/app/actions';
+import type { Product } from '@/lib/types';
+import { useCart } from '@/context/cart-context';
 
 const formSchema = z.object({
-  browsingHistory: z.string().min(10, {
-    message: "Please tell us a bit more about what you've liked.",
-  }).describe("The user's browsing history, as a string."),
-  statedPreferences: z.string().min(10, {
-    message: "Please tell us a bit more about your preferences.",
-  }).describe("The user's stated preferences, as a string."),
+  preferences: z.string().min(10, {
+    message: "Please tell us a bit more about what you're looking for.",
+  }).describe("The user's stated preferences for soap and grooming products."),
 });
 
 type FormData = z.infer<typeof formSchema>;
 
 export function RecommendationForm() {
-  const [recommendations, setRecommendations] = useState<string[]>([]);
+  const [recommendations, setRecommendations] = useState<Product[]>([]);
   const [error, setError] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState(false);
+  const { addToCart } = useCart();
 
   const form = useForm<FormData>({
     resolver: zodResolver(formSchema),
     defaultValues: {
-      browsingHistory: '',
-      statedPreferences: '',
+      preferences: '',
     },
   });
 
@@ -56,42 +56,23 @@ export function RecommendationForm() {
       <CardContent className="p-6 sm:p-8">
         <Form {...form}>
           <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6">
-            <div className="grid md:grid-cols-2 gap-6">
-              <FormField
-                control={form.control}
-                name="browsingHistory"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel className="text-primary font-headline text-lg">What scents or products have you liked?</FormLabel>
-                    <FormControl>
-                      <Textarea
-                        placeholder="e.g., 'I usually go for woody scents like sandalwood. I've tried some charcoal soaps before.'"
-                        className="resize-none h-32 bg-card border-primary/30 focus:border-accent focus:ring-accent"
-                        {...field}
-                      />
-                    </FormControl>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
-              <FormField
-                control={form.control}
-                name="statedPreferences"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel className="text-primary font-headline text-lg">What are you looking for in a product?</FormLabel>
-                    <FormControl>
-                      <Textarea
-                        placeholder="e.g., 'Something for dry skin, maybe with a fresh, clean scent. I prefer all-natural ingredients.'"
-                        className="resize-none h-32 bg-card border-primary/30 focus:border-accent focus:ring-accent"
-                        {...field}
-                      />
-                    </FormControl>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
-            </div>
+            <FormField
+              control={form.control}
+              name="preferences"
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel className="text-primary font-headline text-lg">What are you looking for in a soap?</FormLabel>
+                  <FormControl>
+                    <Textarea
+                      placeholder="e.g., 'Something for dry skin, maybe with a fresh, clean scent like pine or mint. I prefer all-natural ingredients.'"
+                      className="resize-none h-32 bg-card border-primary/30 focus:border-accent focus:ring-accent"
+                      {...field}
+                    />
+                  </FormControl>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
             <Button type="submit" disabled={isLoading} className="w-full bg-accent hover:bg-accent/90 text-accent-foreground text-lg py-6 shadow-md transition-transform hover:scale-105">
               {isLoading ? (
                 <>
@@ -123,14 +104,24 @@ export function RecommendationForm() {
         {recommendations.length > 0 && !isLoading && (
           <div className="mt-8 pt-6 border-t border-primary/20">
             <h4 className="text-2xl font-headline text-primary text-center mb-4">Our AI Recommends...</h4>
-            <ul className="grid grid-cols-1 gap-3 list-none p-0">
-              {recommendations.map((rec, index) => (
-                <li key={index} className="bg-background border border-primary/20 rounded-lg p-4 flex items-center gap-4 transition-all hover:border-accent hover:shadow-md">
-                   <Leaf className="h-5 w-5 text-accent flex-shrink-0" />
-                  <p className="text-primary font-medium">{rec}</p>
-                </li>
+            <div className="grid md:grid-cols-3 gap-6">
+              {recommendations.map((product) => (
+                <div key={product.id} className="bg-background border border-border/50 rounded-lg flex flex-col overflow-hidden shadow-lg hover:shadow-primary/20 transition-shadow duration-300 text-left">
+                  <Image src={product.image} alt={product.name} width={400} height={400} className="w-full h-auto object-cover" data-ai-hint={product.hint} />
+                  <div className="p-4 flex flex-col flex-grow">
+                    <h5 className="font-headline text-xl uppercase">{product.name}</h5>
+                    <p className="text-sm text-muted-foreground mt-1 flex-grow">{product.description}</p>
+                    <div className="flex justify-between items-center mt-4">
+                      <p className="text-lg font-headline text-primary">${product.price.toFixed(2)}</p>
+                      <Button variant="outline" size="sm" className="text-xs uppercase tracking-widest" onClick={() => addToCart(product)}>
+                        <ShoppingCart className="mr-2 h-4 w-4"/>
+                        Add
+                      </Button>
+                    </div>
+                  </div>
+                </div>
               ))}
-            </ul>
+            </div>
           </div>
         )}
       </CardContent>
