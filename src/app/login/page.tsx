@@ -46,24 +46,25 @@ export default function LoginPage() {
             </Button>
           </div>
           
-          {authInitialized && (
-            <>
-              <div className="relative my-6">
-                <div className="absolute inset-0 flex items-center">
-                  <span className="w-full border-t" />
-                </div>
-                <div className="relative flex justify-center text-xs uppercase">
-                  <span className="bg-card px-2 text-muted-foreground">
-                    Or continue with
-                  </span>
-                </div>
-              </div>
+          <div className="relative my-6">
+            <div className="absolute inset-0 flex items-center">
+              <span className="w-full border-t" />
+            </div>
+            <div className="relative flex justify-center text-xs uppercase">
+              <span className="bg-card px-2 text-muted-foreground">
+                Or continue with
+              </span>
+            </div>
+          </div>
 
-              <Button variant="outline" className="w-full" onClick={signInWithGoogle}>
-                <GoogleIcon className="mr-2 h-4 w-4" />
-                Google
-              </Button>
-            </>
+          <Button variant="outline" className="w-full" onClick={signInWithGoogle} disabled={!authInitialized}>
+            <GoogleIcon className="mr-2 h-4 w-4" />
+            Google
+          </Button>
+          {!authInitialized && (
+            <p className="mt-2 text-xs text-center text-muted-foreground">
+              Google Sign-In is currently unavailable.
+            </p>
           )}
 
           <div className="mt-4 text-center text-sm">
