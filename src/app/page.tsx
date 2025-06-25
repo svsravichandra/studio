@@ -26,7 +26,7 @@ async function getFeaturedProducts(): Promise<{ products: Product[] } | { error:
     });
     return { products };
   } catch (error: any) {
-    console.error("Error fetching featured products: ", error,"dock",querySnapshot);
+    console.error("Error fetching featured products: ", error);
     return { error: `Failed to fetch featured products. Details: ${error.message}` };
   }
 }
