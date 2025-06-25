@@ -36,7 +36,8 @@ export default function Home() {
             data-ai-hint="man forest"
             priority
           />
-          <div className="relative z-10 flex h-full flex-col items-center justify-center bg-black/60 p-4">
+          <div className="absolute inset-0 bg-black/60 z-10" />
+          <div className="relative z-20 flex h-full flex-col items-center justify-center p-4">
             <h1 className="text-5xl md:text-7xl font-headline uppercase">
               Built for the <span className="text-primary">Rugged</span> Man
             </h1>
