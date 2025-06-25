@@ -3,27 +3,31 @@ import { db } from "@/lib/firebase";
 import type { Product } from "@/lib/types";
 import { ProductList } from "./product-list";
 
-async function getProducts(): Promise<Product[]> {
+async function getProducts(): Promise<{ products: Product[] } | { error: string }> {
   if (!db) {
-    console.error("Firestore is not initialized.");
-    return [];
+    return { error: "Database connection failed. Please ensure your Firebase environment variables are set correctly in the .env file." };
   }
   try {
-    const querySnapshot = await getDocs(collection(db, "products"));
+    const productsRef = collection(db, "products");
+    const querySnapshot = await getDocs(productsRef);
+    
+    if (querySnapshot.empty) {
+      return { products: [] };
+    }
+
     const productsData: Product[] = [];
     querySnapshot.forEach((doc) => {
       productsData.push({ id: doc.id, ...doc.data() } as Product);
     });
-    return productsData;
-  } catch (error) {
+    return { products: productsData };
+  } catch (error: any) {
     console.error("Error fetching products: ", error);
-    // In a real app, you might want to log this error to a service
-    return [];
+    return { error: `Failed to fetch products from the database. Please check Firestore security rules and configuration. Details: ${error.message}` };
   }
 }
 
 export default async function ProductsPage() {
-  const products = await getProducts();
+  const result = await getProducts();
 
   return (
     <div className="bg-background">
@@ -34,7 +38,19 @@ export default async function ProductsPage() {
             Explore our full range of handcrafted soaps, engineered for excellence.
           </p>
         </div>
-        <ProductList products={products} />
+        {'error' in result ? (
+          <div className="text-center py-16 text-destructive-foreground bg-destructive/20 p-6 rounded-lg">
+            <h3 className="text-2xl font-headline uppercase mb-2">Error Loading Products</h3>
+            <p>{result.error}</p>
+          </div>
+        ) : result.products.length > 0 ? (
+           <ProductList products={result.products} />
+        ) : (
+          <div className="text-center py-16 text-muted-foreground">
+              <p>No products found in the database.</p>
+              <p className="text-sm mt-2">Please add products to the 'products' collection in your Firestore database.</p>
+          </div>
+        )}
       </div>
     </div>
   );

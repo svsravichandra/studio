@@ -12,15 +12,6 @@ interface ProductListProps {
 export function ProductList({ products }: ProductListProps) {
   const { addToCart } = useCart();
   
-  if (!products || products.length === 0) {
-      return (
-          <div className="text-center py-16 text-muted-foreground">
-              <p>No products found.</p>
-              <p className="text-sm mt-2">This could be because the database is empty or there was an issue fetching data.</p>
-          </div>
-      )
-  }
-
   return (
     <div className="grid sm:grid-cols-2 lg:grid-cols-4 gap-8 text-left">
       {products.map((product) => (

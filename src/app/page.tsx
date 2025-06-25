@@ -1,5 +1,3 @@
-'use client';
-
 import { Check, Leaf, MapPin, Package, Star, Truck } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import Image from 'next/image';
@@ -8,37 +6,31 @@ import Link from 'next/link';
 import type { Product } from '@/lib/types';
 import { collection, getDocs, query, where } from 'firebase/firestore';
 import { db } from '@/lib/firebase';
-import { useEffect, useState } from 'react';
-import { useCart } from '@/context/cart-context';
 import { FeaturedProducts } from '@/components/featured-products';
 
-export default function Home() {
-  const [featuredProducts, setFeaturedProducts] = useState<Product[]>([]);
-  const [isLoading, setIsLoading] = useState(true);
+async function getFeaturedProducts(): Promise<{ products: Product[] } | { error: string }> {
+  if (!db) {
+    return { error: "Database connection failed. Please ensure your Firebase environment variables are set correctly." };
+  }
+  try {
+    const productsRef = collection(db, "products");
+    const q = query(productsRef, where("featured", "==", true));
+    const querySnapshot = await getDocs(q);
 
-  useEffect(() => {
-    const fetchFeaturedProducts = async () => {
-      if (!db) {
-        setIsLoading(false);
-        return;
-      }
-      try {
-        const productsRef = collection(db, 'products');
-        const q = query(productsRef, where('featured', '==', true));
-        const querySnapshot = await getDocs(q);
-        const products: Product[] = [];
-        querySnapshot.forEach((doc) => {
-          products.push({ id: doc.id, ...doc.data() } as Product);
-        });
-        setFeaturedProducts(products);
-      } catch (error) {
-        console.error("Error fetching featured products: ", error);
-      } finally {
-        setIsLoading(false);
-      }
-    };
-    fetchFeaturedProducts();
-  }, []);
+    const products: Product[] = [];
+    querySnapshot.forEach((doc) => {
+      products.push({ id: doc.id, ...doc.data() } as Product);
+    });
+    return { products };
+  } catch (error: any) {
+    console.error("Error fetching featured products: ", error);
+    return { error: `Failed to fetch featured products. Details: ${error.message}` };
+  }
+}
+
+
+export default async function Home() {
+  const result = await getFeaturedProducts();
 
   return (
     <>
@@ -107,7 +99,14 @@ export default function Home() {
           <p className="mt-2 max-w-2xl mx-auto text-muted-foreground">
             Discover our most popular handcrafted soaps, each designed for the modern man who demands quality.
           </p>
-          <FeaturedProducts products={featuredProducts} isLoading={isLoading} />
+          {'error' in result ? (
+            <div className="mt-12 text-center py-16 text-destructive-foreground bg-destructive/20 p-6 rounded-lg">
+                <h3 className="text-2xl font-headline uppercase mb-2">Error Loading Products</h3>
+                <p>{result.error}</p>
+            </div>
+           ) : (
+            <FeaturedProducts products={result.products} />
+           )}
         </div>
       </section>
 

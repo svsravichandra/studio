@@ -5,24 +5,14 @@ import { useCart } from '@/context/cart-context';
 import Image from 'next/image';
 import { Button } from '@/components/ui/button';
 import Link from 'next/link';
-import { Loader2 } from 'lucide-react';
 
 interface FeaturedProductsProps {
   products: Product[];
-  isLoading: boolean;
 }
 
-export function FeaturedProducts({ products, isLoading }: FeaturedProductsProps) {
+export function FeaturedProducts({ products }: FeaturedProductsProps) {
   const { addToCart } = useCart();
   
-  if (isLoading) {
-    return (
-      <div className="flex justify-center items-center h-40">
-        <Loader2 className="h-8 w-8 animate-spin text-primary" />
-      </div>
-    );
-  }
-
   if (!products || products.length === 0) {
     return (
       <div className="mt-12 text-center py-16 text-muted-foreground">
