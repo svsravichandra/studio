@@ -1,3 +1,4 @@
+
 'use client';
 
 import Link from 'next/link';
@@ -13,9 +14,12 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
+import { useCart } from '@/context/cart-context';
+import { Badge } from '@/components/ui/badge';
 
 export function Header() {
   const { user, signOut } = useAuth();
+  const { totalItems } = useCart();
 
   return (
     <header className="sticky top-0 z-50 bg-background/80 backdrop-blur-sm">
@@ -58,7 +62,12 @@ export function Header() {
             ) : (
               <Link href="/login" className="hover:text-primary transition-colors"><User className="h-5 w-5" /></Link>
             )}
-            <Link href="/cart" className="hover:text-primary transition-colors"><ShoppingCart className="h-5 w-5" /></Link>
+            <Link href="/cart" className="relative hover:text-primary transition-colors">
+              <ShoppingCart className="h-5 w-5" />
+              {totalItems > 0 && (
+                <Badge variant="destructive" className="absolute -top-2 -right-3 h-5 w-5 p-0 flex items-center justify-center text-xs">{totalItems}</Badge>
+              )}
+            </Link>
           </div>
         </div>
       </div>

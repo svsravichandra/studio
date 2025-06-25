@@ -1,17 +1,43 @@
+'use client';
+
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Separator } from "@/components/ui/separator";
+import { useCart } from "@/context/cart-context";
+import Link from "next/link";
+import { useRouter } from "next/navigation";
+import { useEffect } from "react";
 
 export default function CheckoutPage() {
-  const orderItems = [
-    { id: 1, name: 'Whiskey Oak', price: 9.00, quantity: 1 },
-    { id: 2, name: 'Timber & Smoke', price: 9.00, quantity: 2 },
-  ];
-  const subtotal = orderItems.reduce((acc, item) => acc + item.price * item.quantity, 0);
-  const shipping = 5.00;
+  const { cartItems, subtotal, clearCart } = useCart();
+  const router = useRouter();
+
+  useEffect(() => {
+    if(cartItems.length === 0) {
+      router.push('/products');
+    }
+  }, [cartItems, router]);
+
+  const shipping = cartItems.length > 0 ? 5.00 : 0;
   const total = subtotal + shipping;
+  
+  const handlePlaceOrder = () => {
+    // In a real application, you would process the payment here.
+    alert('Order placed successfully! (This is a demo)');
+    clearCart();
+    router.push('/');
+  }
+
+  if (cartItems.length === 0) {
+    return (
+      <div className="container mx-auto px-4 py-16 text-center">
+        <h1 className="text-2xl font-headline">Redirecting...</h1>
+        <p className="text-muted-foreground">Your cart is empty.</p>
+      </div>
+    );
+  }
 
   return (
     <div className="container mx-auto px-4 py-16">
@@ -89,7 +115,7 @@ export default function CheckoutPage() {
             </CardHeader>
             <CardContent>
               <div className="space-y-3">
-                {orderItems.map(item => (
+                {cartItems.map(item => (
                   <div key={item.id} className="flex justify-between items-center text-sm">
                     <span className="text-muted-foreground">{item.name} x{item.quantity}</span>
                     <span>${(item.price * item.quantity).toFixed(2)}</span>
@@ -112,7 +138,7 @@ export default function CheckoutPage() {
                   <span className="text-primary">${total.toFixed(2)}</span>
                 </div>
               </div>
-              <Button size="lg" className="w-full mt-6 uppercase tracking-widest">
+              <Button size="lg" className="w-full mt-6 uppercase tracking-widest" onClick={handlePlaceOrder}>
                 Place Order
               </Button>
             </CardContent>

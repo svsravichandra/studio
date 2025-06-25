@@ -1,10 +1,23 @@
+'use client';
+
 import { Check, Leaf, MapPin, Package, Star, Truck } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import Image from 'next/image';
 import { RecommendationForm } from '@/components/recommendation-form';
 import Link from 'next/link';
+import { useCart } from '@/context/cart-context';
+import type { Product } from '@/lib/types';
+
+const featuredProducts: Product[] = [
+    { id: 'scrubby-grit', name: 'Scrubby Grit', description: 'Coffee & ground oats for a rugged, energizing morning scrub.', price: 8.00, image: 'https://placehold.co/400x400.png', hint: 'coffee soap' },
+    { id: 'whiskey-oak', name: 'Whiskey Oak', description: 'Deep woody notes with an enticing and intoxicating aroma.', price: 9.00, image: 'https://placehold.co/400x400.png', hint: 'whiskey soap' },
+    { id: 'arctic-steel', name: 'Arctic Steel', description: 'Mint and tea tree oils for a sharp, clean feeling all day long.', price: 8.00, image: 'https://placehold.co/400x400.png', hint: 'mint soap' },
+    { id: 'timber-smoke', name: 'Timber & Smoke', description: 'Earthy birch tar and charcoal for a smoky, masculine scent.', price: 9.00, image: 'https://placehold.co/400x400.png', hint: 'charcoal soap' }
+];
 
 export default function Home() {
+  const { addToCart } = useCart();
+
   return (
     <>
       <section 
@@ -73,20 +86,15 @@ export default function Home() {
             Discover our most popular handcrafted soaps, each designed for the modern man who demands quality.
           </p>
           <div className="grid sm:grid-cols-2 lg:grid-cols-4 gap-8 mt-12 text-left">
-            {[
-              { name: 'Scrubby Grit', description: 'Coffee & ground oats for a rugged, energizing morning scrub.', price: '8.00', image: 'https://placehold.co/400x400.png', hint: 'coffee soap' },
-              { name: 'Whiskey Oak', description: 'Deep woody notes with an enticing and intoxicating aroma.', price: '9.00', image: 'https://placehold.co/400x400.png', hint: 'whiskey soap' },
-              { name: 'Arctic Steel', description: 'Mint and tea tree oils for a sharp, clean feeling all day long.', price: '8.00', image: 'https://placehold.co/400x400.png', hint: 'mint soap' },
-              { name: 'Timber & Smoke', description: 'Earthy birch tar and charcoal for a smoky, masculine scent.', price: '9.00', image: 'https://placehold.co/400x400.png', hint: 'charcoal soap' }
-            ].map((product) => (
-              <div key={product.name} className="bg-background border border-border/50 rounded-lg flex flex-col overflow-hidden shadow-lg hover:shadow-primary/20 transition-shadow duration-300">
+            {featuredProducts.map((product) => (
+              <div key={product.id} className="bg-background border border-border/50 rounded-lg flex flex-col overflow-hidden shadow-lg hover:shadow-primary/20 transition-shadow duration-300">
                 <Image src={product.image} alt={product.name} width={400} height={400} className="w-full h-auto object-cover" data-ai-hint={product.hint} />
                 <div className="p-4 flex flex-col flex-grow">
                   <h4 className="font-headline text-xl uppercase">{product.name}</h4>
                   <p className="text-sm text-muted-foreground mt-1 flex-grow">{product.description}</p>
                   <div className="flex justify-between items-center mt-4">
-                    <p className="text-lg font-headline text-primary">${product.price}</p>
-                    <Button variant="outline" size="sm" className="text-xs uppercase tracking-widest">Add To Cart</Button>
+                    <p className="text-lg font-headline text-primary">${product.price.toFixed(2)}</p>
+                    <Button variant="outline" size="sm" className="text-xs uppercase tracking-widest" onClick={() => addToCart(product)}>Add To Cart</Button>
                   </div>
                 </div>
               </div>
