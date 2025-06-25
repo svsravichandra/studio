@@ -13,7 +13,7 @@ export const ProductSchema = z.object({
     name: z.string(),
     description: z.string(),
     price: z.number(),
-    image: z.string(),
+    image: z.string().url(),
     hint: z.string(),
     featured: z.boolean().optional(),
 });
