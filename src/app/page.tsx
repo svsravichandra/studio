@@ -27,14 +27,11 @@ export default function Home() {
       </header>
 
       <main className="flex-grow">
-        <section id="home" className="relative h-[70vh] text-center text-white">
-          <Image
-            src="/hero-background.jpg"
-            alt="Man standing on a path in a sunlit forest"
-            fill
-            className="object-cover"
-            priority
-          />
+        <section 
+          id="home" 
+          className="relative h-[70vh] bg-cover bg-center text-center text-white" 
+          style={{ backgroundImage: "url('/hero-background.jpg')" }}
+        >
           <div className="absolute inset-0 bg-black/60 z-10" />
           <div className="relative z-20 flex h-full flex-col items-center justify-center p-4">
             <h1 className="text-5xl md:text-7xl font-headline uppercase">
