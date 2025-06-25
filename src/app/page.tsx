@@ -28,12 +28,12 @@ export default function Home() {
       <main className="flex-grow">
         <section className="relative h-[70vh] flex items-center justify-center text-center text-white">
           <Image
-            src="https://placehold.co/1920x1080.png"
-            alt="Man working in a workshop"
+            src="/hero-background.jpeg"
+            alt="Man standing on a path in a sunlit forest"
             layout="fill"
             objectFit="cover"
             className="absolute inset-0 z-0 opacity-20"
-            data-ai-hint="dark workshop"
+            data-ai-hint="man forest"
           />
           <div className="relative z-10 p-4">
             <h1 className="text-5xl md:text-7xl font-headline uppercase">
