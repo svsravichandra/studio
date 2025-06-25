@@ -1,7 +1,9 @@
+
 import { Check, Package, Leaf, Truck, MapPin, Star, User, ShoppingCart, Facebook, Instagram } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import Image from 'next/image';
+import { RecommendationForm } from '@/components/recommendation-form';
 
 export default function Home() {
   return (
@@ -11,11 +13,10 @@ export default function Home() {
           <div className="flex items-center justify-between h-20">
             <a href="#" className="text-2xl font-headline uppercase tracking-wider">Grit & Co.</a>
             <nav className="hidden md:flex items-center space-x-8">
-              <a href="#" className="text-sm uppercase tracking-widest hover:text-primary transition-colors">Home</a>
-              <a href="#" className="text-sm uppercase tracking-widest hover:text-primary transition-colors">Shop</a>
-              <a href="#" className="text-sm uppercase tracking-widest hover:text-primary transition-colors">Gritbox</a>
-              <a href="#" className="text-sm uppercase tracking-widest hover:text-primary transition-colors">About</a>
-              <a href="#" className="text-sm uppercase tracking-widest hover:text-primary transition-colors">Contact</a>
+              <a href="#home" className="text-sm uppercase tracking-widest hover:text-primary transition-colors">Home</a>
+              <a href="#featured" className="text-sm uppercase tracking-widest hover:text-primary transition-colors">Shop</a>
+              <a href="#gritbox" className="text-sm uppercase tracking-widest hover:text-primary transition-colors">Gritbox</a>
+              <a href="#recommendations" className="text-sm uppercase tracking-widest hover:text-primary transition-colors">Recommend</a>
             </nav>
             <div className="flex items-center space-x-4">
               <a href="#" className="hover:text-primary transition-colors"><User className="h-5 w-5" /></a>
@@ -26,16 +27,18 @@ export default function Home() {
       </header>
 
       <main className="flex-grow">
-        <section className="relative h-[70vh] flex items-center justify-center text-center text-white">
+        <section id="home" className="relative h-[70vh] flex items-center justify-center text-center text-white">
           <Image
             src="/hero-background.jpeg"
             alt="Man standing on a path in a sunlit forest"
-            layout="fill"
+            fill
             objectFit="cover"
-            className="absolute inset-0 z-0 opacity-20"
+            className="absolute inset-0 z-0"
             data-ai-hint="man forest"
+            priority
           />
-          <div className="relative z-10 p-4">
+          <div className="absolute inset-0 bg-background/70 z-10"></div>
+          <div className="relative z-20 p-4">
             <h1 className="text-5xl md:text-7xl font-headline uppercase">
               Built for the <span className="text-primary">Rugged</span> Man
             </h1>
@@ -53,28 +56,28 @@ export default function Home() {
           <div className="container mx-auto px-4">
             <div className="grid md:grid-cols-4 gap-8 text-center">
               <div className="flex flex-col items-center">
-                <div className="border border-primary/50 p-4 inline-block mb-4">
+                <div className="border border-primary/50 rounded-lg p-4 inline-block mb-4">
                   <Package className="h-8 w-8 text-primary" />
                 </div>
                 <h3 className="font-headline text-lg uppercase">Handcrafted</h3>
                 <p className="text-sm text-muted-foreground mt-2">Small batch, premium soap with natural ingredients from California forests.</p>
               </div>
               <div className="flex flex-col items-center">
-                <div className="border border-primary/50 p-4 inline-block mb-4">
+                <div className="border border-primary/50 rounded-lg p-4 inline-block mb-4">
                   <Leaf className="h-8 w-8 text-primary" />
                 </div>
                 <h3 className="font-headline text-lg uppercase">Natural Ingredients</h3>
                 <p className="text-sm text-muted-foreground mt-2">We use honest, powerful natural ingredients that actually work.</p>
               </div>
               <div className="flex flex-col items-center">
-                <div className="border border-primary/50 p-4 inline-block mb-4">
+                <div className="border border-primary/50 rounded-lg p-4 inline-block mb-4">
                   <Truck className="h-8 w-8 text-primary" />
                 </div>
                 <h3 className="font-headline text-lg uppercase">Free Shipping</h3>
                 <p className="text-sm text-muted-foreground mt-2">On all orders over $50, we'll deliver your order for free.</p>
               </div>
               <div className="flex flex-col items-center">
-                <div className="border border-primary/50 p-4 inline-block mb-4">
+                <div className="border border-primary/50 rounded-lg p-4 inline-block mb-4">
                   <MapPin className="h-8 w-8 text-primary" />
                 </div>
                 <h3 className="font-headline text-lg uppercase">Made in California</h3>
@@ -84,7 +87,7 @@ export default function Home() {
           </div>
         </section>
 
-        <section className="bg-card py-20">
+        <section id="featured" className="bg-card py-20">
           <div className="container mx-auto px-4 text-center">
             <h2 className="text-4xl font-headline uppercase">Featured <span className="text-primary">Collection</span></h2>
             <p className="mt-2 max-w-2xl mx-auto text-muted-foreground">
@@ -97,7 +100,7 @@ export default function Home() {
                 { name: 'Arctic Steel', description: 'Mint and tea tree oils for a sharp, clean feeling all day long.', price: '8.00', image: 'https://placehold.co/400x400.png', hint: 'mint soap' },
                 { name: 'Timber & Smoke', description: 'Earthy birch tar and charcoal for a smoky, masculine scent.', price: '9.00', image: 'https://placehold.co/400x400.png', hint: 'charcoal soap' }
               ].map((product) => (
-                <div key={product.name} className="bg-background border border-border/50 flex flex-col">
+                <div key={product.name} className="bg-background border border-border/50 rounded-lg flex flex-col overflow-hidden shadow-lg hover:shadow-primary/20 transition-shadow duration-300">
                   <Image src={product.image} alt={product.name} width={400} height={400} className="w-full h-auto object-cover" data-ai-hint={product.hint} />
                   <div className="p-4 flex flex-col flex-grow">
                     <h4 className="font-headline text-xl uppercase">{product.name}</h4>
@@ -114,7 +117,7 @@ export default function Home() {
           </div>
         </section>
 
-        <section className="py-20 bg-background">
+        <section id="gritbox" className="py-20 bg-background">
           <div className="container mx-auto px-4">
             <div className="grid md:grid-cols-2 gap-12 items-center">
               <div className="text-left">
@@ -132,13 +135,25 @@ export default function Home() {
                 </div>
               </div>
               <div>
-                <Image src="https://placehold.co/600x600.png" alt="Gritbox subscription box" width={600} height={600} className="border border-border/50" data-ai-hint="subscription box" />
+                <Image src="https://placehold.co/600x600.png" alt="Gritbox subscription box" width={600} height={600} className="border border-border/50 rounded-lg shadow-lg" data-ai-hint="subscription box" />
               </div>
             </div>
           </div>
         </section>
 
-        <section className="py-20 bg-card">
+        <section id="recommendations" className="py-20 bg-card">
+          <div className="container mx-auto px-4 text-center">
+            <h2 className="text-4xl font-headline uppercase">Need a <span className="text-primary">Recommendation?</span></h2>
+            <p className="mt-2 max-w-2xl mx-auto text-muted-foreground">
+              Let our AI guide you to the perfect soap based on your preferences.
+            </p>
+            <div className="mt-12 max-w-4xl mx-auto">
+              <RecommendationForm />
+            </div>
+          </div>
+        </section>
+
+        <section className="py-20 bg-background">
           <div className="container mx-auto px-4 text-center">
             <h2 className="text-4xl font-headline uppercase">What Men Are <span className="text-primary">Saying</span></h2>
             <div className="grid md:grid-cols-3 gap-8 mt-12 text-left">
@@ -147,9 +162,9 @@ export default function Home() {
                 { name: 'Marcus K.', title: 'Outdoor Guide', review: "The Gritbox subscription is perfect because I never have to think about running out, and I love trying different scents every month." },
                 { name: 'David L.', title: 'Firefighter', review: "Been using the Arctic Steel soap for months. Makes me feel better than coffee. Really is incredible." },
               ].map((testimonial) => (
-                <div key={testimonial.name} className="bg-background border border-border/50 p-6">
+                <div key={testimonial.name} className="bg-card border border-border/50 rounded-lg p-6 shadow-lg hover:shadow-primary/20 transition-shadow duration-300">
                   <div className="flex items-center mb-2">
-                    {[...Array(5)].map((_, i) => <Star key={i} className="h-5 w-5 text-primary fill-current" />)}
+                    {[...Array(5)].map((_, i) => <Star key={i} className="h-5 w-5 text-primary fill-primary" />)}
                   </div>
                   <p className="text-muted-foreground italic">"{testimonial.review}"</p>
                   <p className="font-headline text-lg mt-4 uppercase">{testimonial.name}</p>
@@ -205,3 +220,5 @@ export default function Home() {
     </div>
   );
 }
+
+    
