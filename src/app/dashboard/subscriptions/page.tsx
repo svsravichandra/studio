@@ -12,26 +12,37 @@ import { doc, getDoc } from "firebase/firestore";
 import { db } from "@/lib/firebase";
 import { Loader2 } from "lucide-react";
 
-
-const mockSubscription: Subscription = {
-  id: 'sub_123abc',
-  status: 'Active',
-  frequency: 'Monthly',
-  nextBillingDate: '2024-08-15',
-  products: [
-    { id: 'whiskey-oak', name: 'Whiskey Oak', quantity: 1, price: 7.00, image: 'https://placehold.co/400x400.png', hint: 'whiskey soap' },
-    { id: 'scrubby-grit', name: 'Scrubby Grit', quantity: 1, price: 7.00, image: 'https://placehold.co/400x400.png', hint: 'coffee soap' },
-    { id: 'arctic-steel', name: 'Arctic Steel', quantity: 1, price: 7.00, image: 'https://placehold.co/400x400.png', hint: 'mint soap' }
-  ],
-  total: 21.00
-}
-
 export default function SubscriptionsPage() {
     const { user } = useAuth();
-    // For now, we will continue using mock data for subscriptions as it's a more complex system.
-    // We can implement this in a future step.
-    const [subscription, setSubscription] = useState<Subscription | null>(mockSubscription);
-    const [isLoading, setIsLoading] = useState(false);
+    const [subscription, setSubscription] = useState<Subscription | null>(null);
+    const [isLoading, setIsLoading] = useState(true);
+
+    useEffect(() => {
+      const fetchSubscription = async () => {
+        if (!user || !db) {
+            setIsLoading(false);
+            return;
+        };
+
+        // For this example, we assume a user has one subscription document with a fixed ID.
+        // A real app might have a list of subscriptions.
+        const subRef = doc(db, `users/${user.uid}/subscriptions`, 'active_subscription');
+        try {
+            const docSnap = await getDoc(subRef);
+            if (docSnap.exists()) {
+                setSubscription({ id: docSnap.id, ...docSnap.data() } as Subscription);
+            } else {
+                setSubscription(null);
+            }
+        } catch (error) {
+            console.error("Error fetching subscription: ", error);
+            setSubscription(null);
+        } finally {
+            setIsLoading(false);
+        }
+      }
+      fetchSubscription();
+    }, [user]);
 
     if (isLoading) {
         return (
@@ -99,7 +110,7 @@ export default function SubscriptionsPage() {
                     </div>
                      <div className="flex justify-between">
                         <span className="text-muted-foreground">Next Billing Date:</span>
-                        <span>{subscription.nextBillingDate}</span>
+                        <span>{new Date(subscription.nextBillingDate).toLocaleDateString()}</span>
                     </div>
                      <div className="flex justify-between font-bold">
                         <span className="text-muted-foreground">Monthly Total:</span>

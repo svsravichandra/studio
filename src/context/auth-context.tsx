@@ -1,7 +1,7 @@
 
 'use client';
 
-import React, { createContext, useContext, useEffect, useState, ReactNode } from 'react';
+import React, { createContext, useContext, useEffect, useState, ReactNode, useCallback, useMemo } from 'react';
 import { 
     onAuthStateChanged, 
     signOut as firebaseSignOut, 
@@ -30,7 +30,6 @@ interface AuthContextType {
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
-// Helper to get a friendlier error message
 const getFirebaseAuthErrorMessage = (error: AuthError): string => {
     switch (error.code) {
         case 'auth/invalid-email':
@@ -50,7 +49,6 @@ const getFirebaseAuthErrorMessage = (error: AuthError): string => {
     }
 }
 
-// Creates a user document in Firestore after sign-up
 const createUserProfileDocument = async (user: User) => {
     if (!db) return;
     const userRef = doc(db, 'users', user.uid);
@@ -95,7 +93,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     return () => unsubscribe();
   }, []);
   
-  const signInWithGoogle = async () => {
+  const signInWithGoogle = useCallback(async () => {
     if (!auth) {
       console.error("Cannot sign in: Firebase is not initialized. Please check your .env file.");
       return;
@@ -107,24 +105,26 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     } catch (error) {
       console.error("Error signing in with Google: ", error);
     }
-  };
+  }, [router]);
 
-  const signUpWithEmail = async (name: string, email: string, pass: string) => {
+  const signUpWithEmail = useCallback(async (name: string, email: string, pass: string) => {
     if (!auth) {
         throw new Error("Authentication is not available.");
     }
     try {
         const userCredential = await createUserWithEmailAndPassword(auth, email, pass);
-        await updateProfile(userCredential.user, { displayName: name });
-        await createUserProfileDocument(userCredential.user);
-        setUser(auth.currentUser); 
+        if (userCredential.user) {
+            await updateProfile(userCredential.user, { displayName: name });
+            await createUserProfileDocument(userCredential.user);
+            setUser(auth.currentUser); 
+        }
         router.push('/dashboard');
     } catch (error) {
         throw new Error(getFirebaseAuthErrorMessage(error as AuthError));
     }
-  }
+  }, [router]);
 
-  const signInWithEmail = async (email: string, pass: string) => {
+  const signInWithEmail = useCallback(async (email: string, pass: string) => {
     if (!auth) {
         throw new Error("Authentication is not available.");
     }
@@ -134,9 +134,9 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     } catch (error) {
         throw new Error(getFirebaseAuthErrorMessage(error as AuthError));
     }
-  }
+  }, [router]);
   
-  const signOut = async () => {
+  const signOut = useCallback(async () => {
     if (!auth) {
       console.error("Cannot sign out: Firebase is not initialized.");
       return;
@@ -147,9 +147,17 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     } catch (error) {
         console.error("Error signing out: ", error);
     }
-  };
+  }, [router]);
 
-  const value = { user, loading, signInWithEmail, signUpWithEmail, signInWithGoogle, signOut, authInitialized };
+  const value = useMemo(() => ({ 
+      user, 
+      loading, 
+      signInWithEmail, 
+      signUpWithEmail, 
+      signInWithGoogle, 
+      signOut, 
+      authInitialized 
+  }), [user, loading, signInWithEmail, signUpWithEmail, signInWithGoogle, signOut, authInitialized]);
 
   return (
     <AuthContext.Provider value={value}>

@@ -24,8 +24,8 @@ type ProfileFormData = {
 export default function ProfilePage() {
     const { user } = useAuth();
     const { toast } = useToast();
-    const [isLoading, setIsLoading] = useState(false);
-    const { register, handleSubmit, reset, formState: { isDirty } } = useForm<ProfileFormData>();
+    const [isLoading, setIsLoading] = useState(true);
+    const { register, handleSubmit, reset, formState: { isDirty, isSubmitting } } = useForm<ProfileFormData>();
 
     useEffect(() => {
         const fetchProfile = async () => {
@@ -44,13 +44,13 @@ export default function ProfilePage() {
                     });
                 }
             }
+            setIsLoading(false);
         };
         fetchProfile();
     }, [user, reset]);
 
     const onSubmit = async (data: ProfileFormData) => {
         if (!user || !db) return;
-        setIsLoading(true);
         try {
             const userRef = doc(db, "users", user.uid);
             await updateDoc(userRef, data);
@@ -58,6 +58,7 @@ export default function ProfilePage() {
                 title: "Profile Updated",
                 description: "Your information has been saved.",
             });
+            reset(data); // Resets the form's dirty state
         } catch (error) {
             console.error("Error updating profile: ", error);
             toast({
@@ -65,10 +66,23 @@ export default function ProfilePage() {
                 description: "Failed to update profile. Please try again.",
                 variant: "destructive",
             });
-        } finally {
-            setIsLoading(false);
         }
     };
+
+    if (isLoading) {
+        return (
+            <Card className="bg-card border-border/50">
+                <CardHeader>
+                  <CardTitle className="font-headline uppercase text-2xl">Profile Information</CardTitle>
+                  <CardDescription>Update your personal details here.</CardDescription>
+                </CardHeader>
+                <CardContent className="flex justify-center items-center h-40">
+                    <Loader2 className="h-8 w-8 animate-spin text-primary" />
+                </CardContent>
+            </Card>
+        );
+    }
+
 
     return (
       <Card className="bg-card border-border/50">
@@ -114,8 +128,8 @@ export default function ProfilePage() {
                     </div>
                   </div>
                 </div>
-                <Button type="submit" size="lg" className="uppercase tracking-widest" disabled={isLoading || !isDirty}>
-                    {isLoading && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+                <Button type="submit" size="lg" className="uppercase tracking-widest" disabled={isSubmitting || !isDirty}>
+                    {isSubmitting && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
                     Save Changes
                 </Button>
             </form>
