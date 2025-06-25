@@ -37,7 +37,7 @@ export default function Home() {
             data-ai-hint="man forest"
             priority
           />
-          <div className="absolute inset-0 bg-background/70 z-10"></div>
+          <div className="absolute inset-0 bg-black/60 z-10"></div>
           <div className="relative z-20 p-4">
             <h1 className="text-5xl md:text-7xl font-headline uppercase">
               Built for the <span className="text-primary">Rugged</span> Man
