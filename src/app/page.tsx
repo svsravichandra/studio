@@ -1,18 +1,18 @@
 'use client';
 
-import { Check, Leaf, Loader2, MapPin, Package, Star, Truck } from 'lucide-react';
+import { Check, Leaf, MapPin, Package, Star, Truck } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import Image from 'next/image';
 import { RecommendationForm } from '@/components/recommendation-form';
 import Link from 'next/link';
-import { useCart } from '@/context/cart-context';
 import type { Product } from '@/lib/types';
-import { useEffect, useState } from 'react';
 import { collection, getDocs, query, where } from 'firebase/firestore';
 import { db } from '@/lib/firebase';
+import { useEffect, useState } from 'react';
+import { useCart } from '@/context/cart-context';
+import { FeaturedProducts } from '@/components/featured-products';
 
 export default function Home() {
-  const { addToCart } = useCart();
   const [featuredProducts, setFeaturedProducts] = useState<Product[]>([]);
   const [isLoading, setIsLoading] = useState(true);
 
@@ -107,32 +107,7 @@ export default function Home() {
           <p className="mt-2 max-w-2xl mx-auto text-muted-foreground">
             Discover our most popular handcrafted soaps, each designed for the modern man who demands quality.
           </p>
-          {isLoading ? (
-             <div className="flex justify-center items-center h-40">
-                <Loader2 className="h-8 w-8 animate-spin text-primary" />
-             </div>
-          ) : (
-            <>
-              <div className="grid sm:grid-cols-2 lg:grid-cols-4 gap-8 mt-12 text-left">
-                {featuredProducts.map((product) => (
-                  <div key={product.id} className="bg-background border border-border/50 rounded-lg flex flex-col overflow-hidden shadow-lg hover:shadow-primary/20 transition-shadow duration-300">
-                    <Image src={product.image} alt={product.name} width={400} height={400} className="w-full h-auto object-cover" data-ai-hint={product.hint} />
-                    <div className="p-4 flex flex-col flex-grow">
-                      <h4 className="font-headline text-xl uppercase">{product.name}</h4>
-                      <p className="text-sm text-muted-foreground mt-1 flex-grow">{product.description}</p>
-                      <div className="flex justify-between items-center mt-4">
-                        <p className="text-lg font-headline text-primary">${product.price.toFixed(2)}</p>
-                        <Button variant="outline" size="sm" className="text-xs uppercase tracking-widest" onClick={() => addToCart(product)}>Add To Cart</Button>
-                      </div>
-                    </div>
-                  </div>
-                ))}
-              </div>
-              <Link href="/products">
-                <Button variant="outline" size="lg" className="mt-12 uppercase tracking-widest">View All Products</Button>
-              </Link>
-            </>
-          )}
+          <FeaturedProducts products={featuredProducts} isLoading={isLoading} />
         </div>
       </section>
 
