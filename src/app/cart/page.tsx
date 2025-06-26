@@ -32,7 +32,7 @@ export default function CartPage() {
             <div className="flex flex-col gap-6">
               {cartItems.map(item => (
                 <div key={item.id} className="flex items-center gap-4 bg-card p-4 rounded-lg border border-border/50">
-                  <Image src={item.image} alt={item.name} width={100} height={100} className="rounded-md" data-ai-hint={item.hint}/>
+                  <Image src={item.imageUrl} alt={item.name} width={100} height={100} className="rounded-md" data-ai-hint={item.tags.join(' ')}/>
                   <div className="flex-grow">
                     <h2 className="font-headline text-lg uppercase">{item.name}</h2>
                     <p className="text-muted-foreground">${item.price.toFixed(2)}</p>

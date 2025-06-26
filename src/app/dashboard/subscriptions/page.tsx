@@ -3,73 +3,94 @@
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import { type OrderItem, type Subscription } from "@/lib/types";
+import { type Product, type Subscription } from "@/lib/types";
 import Image from "next/image";
 import { Separator } from "@/components/ui/separator";
 import { useAuth } from "@/context/auth-context";
 import { useEffect, useState } from "react";
-import { doc, getDoc, setDoc } from "firebase/firestore";
+import { doc, getDoc, setDoc, getDocs, collection, query, where, documentId, serverTimestamp } from "firebase/firestore";
 import { db } from "@/lib/firebase";
 import { Loader2 } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
+
+async function getSubscriptionProducts(productIds: string[]): Promise<Product[]> {
+    if (!db || productIds.length === 0) return [];
+    try {
+        const productsRef = collection(db, 'products');
+        const q = query(productsRef, where(documentId(), 'in', productIds));
+        const querySnapshot = await getDocs(q);
+        return querySnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as Product));
+    } catch (error) {
+        console.error("Error fetching subscription products:", error);
+        return [];
+    }
+}
 
 export default function SubscriptionsPage() {
     const { user } = useAuth();
     const { toast } = useToast();
     const [subscription, setSubscription] = useState<Subscription | null>(null);
+    const [products, setProducts] = useState<Product[]>([]);
     const [isLoading, setIsLoading] = useState(true);
     const [isCreating, setIsCreating] = useState(false);
 
     useEffect(() => {
-      const fetchSubscription = async () => {
-        if (!user || !db) {
-            setIsLoading(false);
-            return;
-        };
-        const subRef = doc(db, `users/${user.uid}/subscriptions`, 'active_subscription');
-        try {
-            const docSnap = await getDoc(subRef);
-            if (docSnap.exists()) {
-                setSubscription({ id: docSnap.id, ...docSnap.data() } as Subscription);
-            } else {
+        const fetchSubscription = async () => {
+            if (!user || !db) {
+                setIsLoading(false);
+                return;
+            };
+            setIsLoading(true);
+            const subRef = doc(db, `users/${user.uid}/subscriptions`, 'active_subscription');
+            try {
+                const docSnap = await getDoc(subRef);
+                if (docSnap.exists()) {
+                    const subData = { id: docSnap.id, ...docSnap.data() } as Subscription;
+                    setSubscription(subData);
+                    const productDetails = await getSubscriptionProducts(subData.items);
+                    setProducts(productDetails);
+                } else {
+                    setSubscription(null);
+                    setProducts([]);
+                }
+            } catch (error) {
+                console.error("Error fetching subscription: ", error);
                 setSubscription(null);
+                setProducts([]);
+            } finally {
+                setIsLoading(false);
             }
-        } catch (error) {
-            console.error("Error fetching subscription: ", error);
-            setSubscription(null);
-        } finally {
-            setIsLoading(false);
         }
-      }
-      fetchSubscription();
+        fetchSubscription();
     }, [user]);
 
     const createDefaultSubscription = async () => {
         if (!user || !db) return;
-
         setIsCreating(true);
-        const nextBillingDate = new Date();
-        nextBillingDate.setMonth(nextBillingDate.getMonth() + 1);
 
-        const products: OrderItem[] = [
-            { id: 'scrubby-grit', name: 'Scrubby Grit', description: 'Coffee & ground oats for a rugged, energizing morning scrub.', price: 8.00, image: 'https://placehold.co/400x400.png', hint: 'coffee soap', quantity: 2 },
-            { id: 'whiskey-oak', name: 'Whiskey Oak', description: 'Deep woody notes with an enticing and intoxicating aroma.', price: 9.00, image: 'https://placehold.co/400x400.png', hint: 'whiskey soap', quantity: 1 },
-        ];
-        
-        const total = products.reduce((acc, item) => acc + item.price * item.quantity, 0);
+        const nextDeliveryDate = new Date();
+        nextDeliveryDate.setMonth(nextDeliveryDate.getMonth() + 1);
+
+        const defaultProductIds = ['scrubby-grit', 'whiskey-oak'];
 
         const defaultSubscription: Omit<Subscription, 'id'> = {
-            status: 'Active',
-            frequency: 'Monthly',
-            nextBillingDate: nextBillingDate.toISOString(),
-            products: products,
-            total: total,
+            userId: user.uid,
+            active: true,
+            frequency: 'monthly',
+            nextDelivery: nextDeliveryDate.toISOString(),
+            items: defaultProductIds,
+            createdAt: serverTimestamp(),
         };
 
         try {
             const subRef = doc(db, `users/${user.uid}/subscriptions`, 'active_subscription');
             await setDoc(subRef, defaultSubscription);
-            setSubscription({ id: 'active_subscription', ...defaultSubscription });
+            
+            const subData = { id: 'active_subscription', ...defaultSubscription } as Subscription;
+            setSubscription(subData);
+            const productDetails = await getSubscriptionProducts(subData.items);
+            setProducts(productDetails);
+
             toast({
                 title: "Subscription Started!",
                 description: "Your Gritbox is now active."
@@ -85,7 +106,7 @@ export default function SubscriptionsPage() {
             setIsCreating(false);
         }
     };
-
+    
     if (isLoading) {
         return (
             <Card className="bg-card border-border/50">
@@ -118,7 +139,6 @@ export default function SubscriptionsPage() {
         );
     }
 
-
   return (
     <Card className="bg-card border-border/50">
       <CardHeader>
@@ -127,8 +147,8 @@ export default function SubscriptionsPage() {
                 <CardTitle className="font-headline uppercase text-2xl">Gritbox Subscription</CardTitle>
                 <CardDescription>Manage your monthly soap delivery.</CardDescription>
             </div>
-            <Badge variant={subscription.status === 'Active' ? 'default' : 'secondary'} className="text-base">
-                {subscription.status}
+            <Badge variant={subscription.active ? 'default' : 'secondary'} className="text-base">
+                {subscription.active ? 'Active' : 'Paused'}
             </Badge>
         </div>
       </CardHeader>
@@ -137,9 +157,9 @@ export default function SubscriptionsPage() {
             <div>
                 <h4 className="font-headline uppercase">Current Products</h4>
                 <div className="mt-2 space-y-3">
-                    {subscription.products.map(item => (
+                    {products.map(item => (
                         <div key={item.id} className="flex items-center gap-3">
-                            <Image src={item.image} alt={item.name} width={50} height={50} className="rounded-md" data-ai-hint={item.hint}/>
+                            <Image src={item.imageUrl} alt={item.name} width={50} height={50} className="rounded-md" data-ai-hint={item.tags.join(' ')}/>
                             <p className="flex-grow">{item.name}</p>
                             <p className="text-muted-foreground">${item.price.toFixed(2)}</p>
                         </div>
@@ -148,18 +168,14 @@ export default function SubscriptionsPage() {
             </div>
              <div>
                 <h4 className="font-headline uppercase">Details</h4>
-                <div className="mt-2 space-y-2 text-sm">
+                 <div className="mt-2 space-y-2 text-sm">
                     <div className="flex justify-between">
                         <span className="text-muted-foreground">Frequency:</span>
-                        <span>{subscription.frequency}</span>
+                        <span className="capitalize">{subscription.frequency}</span>
                     </div>
                      <div className="flex justify-between">
-                        <span className="text-muted-foreground">Next Billing Date:</span>
-                        <span>{new Date(subscription.nextBillingDate).toLocaleDateString()}</span>
-                    </div>
-                     <div className="flex justify-between font-bold">
-                        <span className="text-muted-foreground">Monthly Total:</span>
-                        <span>${subscription.total.toFixed(2)}</span>
+                        <span className="text-muted-foreground">Next Delivery:</span>
+                        <span>{new Date(subscription.nextDelivery).toLocaleDateString()}</span>
                     </div>
                 </div>
             </div>

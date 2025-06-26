@@ -6,48 +6,32 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { useAuth } from "@/context/auth-context";
 import { db } from "@/lib/firebase";
-import { doc, getDoc, updateDoc } from "firebase/firestore";
+import { doc, updateDoc } from "firebase/firestore";
 import { Loader2 } from "lucide-react";
-import { useEffect, useState } from "react";
 import { useForm } from "react-hook-form";
 import { useToast } from "@/hooks/use-toast";
+import type { UserProfile } from "@/lib/types";
 
-type ProfileFormData = {
-    displayName: string;
-    address: string;
-    city: string;
-    state: string;
-    zip: string;
-    country: string;
-}
+type ProfileFormData = Omit<UserProfile, 'uid' | 'role' | 'createdAt' | 'email' | 'photoURL'>;
 
 export default function ProfilePage() {
-    const { user } = useAuth();
+    const { user, userProfile, loading } = useAuth();
     const { toast } = useToast();
-    const [isLoading, setIsLoading] = useState(true);
-    const { register, handleSubmit, reset, formState: { isDirty, isSubmitting } } = useForm<ProfileFormData>();
-
-    useEffect(() => {
-        const fetchProfile = async () => {
-            if (user && db) {
-                const docRef = doc(db, 'users', user.uid);
-                const docSnap = await getDoc(docRef);
-                if (docSnap.exists()) {
-                    const data = docSnap.data();
-                    reset({
-                        displayName: data.displayName || user.displayName || '',
-                        address: data.address || '',
-                        city: data.city || '',
-                        state: data.state || '',
-                        zip: data.zip || '',
-                        country: data.country || '',
-                    });
-                }
+    
+    const { register, handleSubmit, reset, formState: { isDirty, isSubmitting } } = useForm<ProfileFormData>({
+        defaultValues: {
+            displayName: userProfile?.displayName || '',
+            phone: userProfile?.phone || '',
+            address: {
+                line1: userProfile?.address?.line1 || '',
+                line2: userProfile?.address?.line2 || '',
+                city: userProfile?.address?.city || '',
+                state: userProfile?.address?.state || '',
+                zip: userProfile?.address?.zip || '',
+                country: userProfile?.address?.country || '',
             }
-            setIsLoading(false);
-        };
-        fetchProfile();
-    }, [user, reset]);
+        }
+    });
 
     const onSubmit = async (data: ProfileFormData) => {
         if (!user || !db) return;
@@ -69,7 +53,7 @@ export default function ProfilePage() {
         }
     };
 
-    if (isLoading) {
+    if (loading) {
         return (
             <Card className="bg-card border-border/50">
                 <CardHeader>
@@ -103,28 +87,32 @@ export default function ProfilePage() {
                         <Input id="email" type="email" defaultValue={user?.email || ''} className="bg-background" readOnly />
                     </div>
                   </div>
+                   <div className="space-y-2">
+                        <Label htmlFor="phone">Phone Number</Label>
+                        <Input id="phone" {...register("phone")} className="bg-background" />
+                    </div>
                   <div className="space-y-2">
-                    <Label htmlFor="address">Address</Label>
-                    <Input id="address" placeholder="123 Grit St." {...register("address")} className="bg-background" />
+                    <Label htmlFor="address.line1">Address</Label>
+                    <Input id="address.line1" placeholder="123 Grit St." {...register("address.line1")} className="bg-background" />
                   </div>
                   <div className="grid grid-cols-2 gap-4">
                     <div className="space-y-2">
-                      <Label htmlFor="city">City</Label>
-                      <Input id="city" placeholder="San Francisco" {...register("city")} className="bg-background" />
+                      <Label htmlFor="address.city">City</Label>
+                      <Input id="address.city" placeholder="San Francisco" {...register("address.city")} className="bg-background" />
                     </div>
                      <div className="space-y-2">
-                      <Label htmlFor="state">State / Province</Label>
-                      <Input id="state" placeholder="CA" {...register("state")} className="bg-background" />
+                      <Label htmlFor="address.state">State / Province</Label>
+                      <Input id="address.state" placeholder="CA" {...register("address.state")} className="bg-background" />
                     </div>
                   </div>
                   <div className="grid grid-cols-2 gap-4">
                     <div className="space-y-2">
-                      <Label htmlFor="zip">ZIP / Postal Code</Label>
-                      <Input id="zip" placeholder="94103" {...register("zip")} className="bg-background" />
+                      <Label htmlFor="address.zip">ZIP / Postal Code</Label>
+                      <Input id="address.zip" placeholder="94103" {...register("address.zip")} className="bg-background" />
                     </div>
                      <div className="space-y-2">
-                      <Label htmlFor="country">Country</Label>
-                      <Input id="country" placeholder="USA" {...register("country")} className="bg-background" />
+                      <Label htmlFor="address.country">Country</Label>
+                      <Input id="address.country" placeholder="USA" {...register("address.country")} className="bg-background" />
                     </div>
                   </div>
                 </div>

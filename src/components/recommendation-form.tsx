@@ -107,7 +107,7 @@ export function RecommendationForm() {
             <div className="grid md:grid-cols-3 gap-6">
               {recommendations.map((product) => (
                 <div key={product.id} className="bg-background border border-border/50 rounded-lg flex flex-col overflow-hidden shadow-lg hover:shadow-primary/20 transition-shadow duration-300 text-left">
-                  <Image src={product.image} alt={product.name} width={400} height={400} className="w-full h-auto object-cover" data-ai-hint={product.hint} />
+                  <Image src={product.imageUrl} alt={product.name} width={400} height={400} className="w-full h-auto object-cover" data-ai-hint={product.tags.join(' ')} />
                   <div className="p-4 flex flex-col flex-grow">
                     <h5 className="font-headline text-xl uppercase">{product.name}</h5>
                     <p className="text-sm text-muted-foreground mt-1 flex-grow">{product.description}</p>

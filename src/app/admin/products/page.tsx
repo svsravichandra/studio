@@ -76,6 +76,7 @@ export default function AdminProductsPage() {
                                     <TableHead>Image</TableHead>
                                     <TableHead>Name</TableHead>
                                     <TableHead>Price</TableHead>
+                                    <TableHead>Stock</TableHead>
                                     <TableHead>Featured</TableHead>
                                     <TableHead className="text-center">Actions</TableHead>
                                 </TableRow>
@@ -84,12 +85,13 @@ export default function AdminProductsPage() {
                                 {products.map((product) => (
                                     <TableRow key={product.id}>
                                         <TableCell>
-                                            <Image src={product.image} alt={product.name} width={40} height={40} className="rounded-md" data-ai-hint={product.hint} />
+                                            <Image src={product.imageUrl} alt={product.name} width={40} height={40} className="rounded-md" data-ai-hint={product.tags?.join(' ')} />
                                         </TableCell>
                                         <TableCell className="font-medium">{product.name}</TableCell>
                                         <TableCell>${product.price.toFixed(2)}</TableCell>
+                                        <TableCell>{product.stock}</TableCell>
                                         <TableCell>
-                                            {product.featured && <Badge>Yes</Badge>}
+                                            {product.isFeatured && <Badge>Yes</Badge>}
                                         </TableCell>
                                         <TableCell className="text-center">
                                             <ProductActions product={product} onEdit={handleEditProduct} />

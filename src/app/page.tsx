@@ -15,7 +15,7 @@ async function getFeaturedProducts(): Promise<{ products: Product[] } | { error:
   try {
     console.log("Attempting to fetch featured products from 'products' collection...");
     const productsRef = collection(db, "products");
-    const q = query(productsRef, where("featured", "==", true));
+    const q = query(productsRef, where("isFeatured", "==", true));
     const querySnapshot = await getDocs(q);
 
     console.log(`Firestore featured products query returned ${querySnapshot.size} documents.`);
@@ -26,8 +26,9 @@ async function getFeaturedProducts(): Promise<{ products: Product[] } | { error:
     });
     return { products };
   } catch (error: any) {
-    console.error("Error fetching featured products: ", error.message);
-    return { error: `Failed to fetch featured products. Details: ${error.message}` };
+    console.error("Error fetching featured products: ", error);
+    const errorMessage = error.message || "An unknown error occurred";
+    return { error: `Failed to fetch featured products. Details: ${errorMessage}` };
   }
 }
 

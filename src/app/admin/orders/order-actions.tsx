@@ -9,7 +9,7 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import { Button } from "@/components/ui/button";
-import { MoreHorizontal, Truck, Undo, PackageCheck, Ban, PackageX, CircleDollarSign } from "lucide-react";
+import { MoreHorizontal, Truck, Undo, PackageCheck, Ban } from "lucide-react";
 import { type Order } from "@/lib/types";
 import { updateOrderStatus } from "@/app/admin/actions";
 import { useToast } from "@/hooks/use-toast";
@@ -47,28 +47,20 @@ export function OrderActions({ order }: { order: OrderWithUser }) {
       <DropdownMenuContent align="end">
         <DropdownMenuLabel>Actions</DropdownMenuLabel>
         <DropdownMenuSeparator />
-        <DropdownMenuItem onClick={() => handleStatusChange('Shipped')}>
+        <DropdownMenuItem onClick={() => handleStatusChange('shipped')}>
           <Truck className="mr-2 h-4 w-4" />
           Mark as Shipped
         </DropdownMenuItem>
-        <DropdownMenuItem onClick={() => handleStatusChange('Delivered')}>
+        <DropdownMenuItem onClick={() => handleStatusChange('delivered')}>
           <PackageCheck className="mr-2 h-4 w-4" />
           Mark as Delivered
         </DropdownMenuItem>
-        <DropdownMenuItem onClick={() => handleStatusChange('Processing')}>
+        <DropdownMenuItem onClick={() => handleStatusChange('processing')}>
           <Undo className="mr-2 h-4 w-4" />
           Revert to Processing
         </DropdownMenuItem>
         <DropdownMenuSeparator />
-        <DropdownMenuItem onClick={() => handleStatusChange('Returned')}>
-          <PackageX className="mr-2 h-4 w-4" />
-          Mark as Returned
-        </DropdownMenuItem>
-        <DropdownMenuItem onClick={() => handleStatusChange('Refunded')}>
-          <CircleDollarSign className="mr-2 h-4 w-4" />
-          Mark as Refunded
-        </DropdownMenuItem>
-        <DropdownMenuItem className="text-destructive" onClick={() => handleStatusChange('Cancelled')}>
+        <DropdownMenuItem className="text-destructive" onClick={() => handleStatusChange('cancelled')}>
            <Ban className="mr-2 h-4 w-4" />
           Cancel Order
         </DropdownMenuItem>

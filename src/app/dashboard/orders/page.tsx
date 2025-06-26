@@ -8,7 +8,7 @@ import { type Order } from "@/lib/types";
 import { Truck, Repeat, RefreshCcw, Loader2 } from "lucide-react";
 import { useAuth } from "@/context/auth-context";
 import { useEffect, useState } from "react";
-import { collection, getDocs, orderBy, query } from "firebase/firestore";
+import { collection, getDocs, orderBy, query, Timestamp } from "firebase/firestore";
 import { db } from "@/lib/firebase";
 
 export default function OrdersPage() {
@@ -29,13 +29,15 @@ export default function OrdersPage() {
         const fetchedOrders: Order[] = [];
         querySnapshot.forEach(doc => {
             const data = doc.data();
+            const createdAtTimestamp = data.createdAt as Timestamp;
             fetchedOrders.push({
                 id: doc.id,
-                date: (data.createdAt?.toDate() ?? new Date()).toISOString(),
+                createdAt: createdAtTimestamp ? createdAtTimestamp.toDate().toISOString() : new Date().toISOString(),
                 status: data.status,
                 total: data.total,
                 items: data.items,
-            });
+                shippingAddress: data.shippingAddress
+            } as Order);
         });
         setOrders(fetchedOrders);
       } catch (error) {
@@ -49,14 +51,10 @@ export default function OrdersPage() {
 
   const getStatusVariant = (status: Order['status']) => {
     switch (status) {
-      case 'Shipped': return 'default';
-      case 'Delivered': return 'secondary';
-      case 'Processing': return 'outline';
-      case 'Cancelled':
-      case 'Returned':
-        return 'destructive';
-      case 'Refunded':
-        return 'secondary';
+      case 'shipped': return 'default';
+      case 'delivered': return 'secondary';
+      case 'processing': return 'outline';
+      case 'cancelled': return 'destructive';
       default: return 'outline';
     }
   }
@@ -101,9 +99,9 @@ export default function OrdersPage() {
                 {orders.map((order) => (
                     <TableRow key={order.id}>
                     <TableCell className="font-medium truncate" style={{maxWidth: '100px'}}>{order.id}</TableCell>
-                    <TableCell>{new Date(order.date).toLocaleDateString()}</TableCell>
+                    <TableCell>{new Date(order.createdAt).toLocaleDateString()}</TableCell>
                     <TableCell>
-                        <Badge variant={getStatusVariant(order.status)}>{order.status}</Badge>
+                        <Badge variant={getStatusVariant(order.status)} className="capitalize">{order.status}</Badge>
                     </TableCell>
                     <TableCell className="text-right">${order.total.toFixed(2)}</TableCell>
                     <TableCell className="flex justify-center items-center gap-2">

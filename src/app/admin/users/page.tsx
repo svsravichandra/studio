@@ -64,7 +64,7 @@ export default function AdminUsersPage() {
                                     </TableCell>
                                     <TableCell>{user.email}</TableCell>
                                     <TableCell>
-                                        <Badge variant={user.role === 'admin' ? 'default' : 'secondary'}>
+                                        <Badge variant={user.role === 'admin' ? 'default' : 'secondary'} className="capitalize">
                                             {user.role}
                                         </Badge>
                                     </TableCell>

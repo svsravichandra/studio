@@ -49,9 +49,9 @@ export function UserActions({ user }: { user: UserProfile }) {
         <DropdownMenuLabel>Actions</DropdownMenuLabel>
         <DropdownMenuSeparator />
         {user.role === 'admin' ? (
-          <DropdownMenuItem onClick={() => handleRoleChange('user')}>
+          <DropdownMenuItem onClick={() => handleRoleChange('customer')}>
             <ShieldOff className="mr-2 h-4 w-4" />
-            Demote to User
+            Demote to Customer
           </DropdownMenuItem>
         ) : (
           <DropdownMenuItem onClick={() => handleRoleChange('admin')}>

@@ -13,9 +13,12 @@ export const ProductSchema = z.object({
     name: z.string(),
     description: z.string(),
     price: z.number(),
-    image: z.string().url(),
-    hint: z.string(),
-    featured: z.boolean().optional(),
+    gritLevel: z.enum(['None', 'Light', 'Medium', 'Heavy']),
+    scentProfile: z.string(),
+    stock: z.number(),
+    isFeatured: z.boolean(),
+    imageUrl: z.string().url(),
+    tags: z.array(z.string()),
 });
 
 export const getProductCatalog = ai.defineTool(

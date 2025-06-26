@@ -40,14 +40,10 @@ export default function AdminOrdersPage() {
 
     const getStatusVariant = (status: Order['status']) => {
         switch (status) {
-            case 'Shipped': return 'default';
-            case 'Delivered': return 'secondary';
-            case 'Processing': return 'outline';
-            case 'Cancelled':
-            case 'Returned':
-                 return 'destructive';
-            case 'Refunded':
-                return 'secondary';
+            case 'shipped': return 'default';
+            case 'delivered': return 'secondary';
+            case 'processing': return 'outline';
+            case 'cancelled': return 'destructive';
             default: return 'outline';
         }
     };
@@ -62,12 +58,10 @@ export default function AdminOrdersPage() {
                 <Tabs value={statusFilter} onValueChange={setStatusFilter} className="mb-4">
                     <TabsList className="flex-wrap h-auto">
                         <TabsTrigger value="all">All</TabsTrigger>
-                        <TabsTrigger value="Processing">Processing</TabsTrigger>
-                        <TabsTrigger value="Shipped">Shipped</TabsTrigger>
-                        <TabsTrigger value="Delivered">Delivered</TabsTrigger>
-                        <TabsTrigger value="Cancelled">Cancelled</TabsTrigger>
-                        <TabsTrigger value="Returned">Returned</TabsTrigger>
-                        <TabsTrigger value="Refunded">Refunded</TabsTrigger>
+                        <TabsTrigger value="processing">Processing</TabsTrigger>
+                        <TabsTrigger value="shipped">Shipped</TabsTrigger>
+                        <TabsTrigger value="delivered">Delivered</TabsTrigger>
+                        <TabsTrigger value="cancelled">Cancelled</TabsTrigger>
                     </TabsList>
                 </Tabs>
 
@@ -99,9 +93,9 @@ export default function AdminOrdersPage() {
                                         <div>{order.user.name}</div>
                                         <div className="text-xs text-muted-foreground">{order.user.email}</div>
                                     </TableCell>
-                                    <TableCell>{new Date(order.date).toLocaleDateString()}</TableCell>
+                                    <TableCell>{new Date(order.createdAt).toLocaleDateString()}</TableCell>
                                     <TableCell>
-                                        <Badge variant={getStatusVariant(order.status)}>{order.status}</Badge>
+                                        <Badge variant={getStatusVariant(order.status)} className="capitalize">{order.status}</Badge>
                                     </TableCell>
                                     <TableCell className="text-right">${order.total.toFixed(2)}</TableCell>
                                     <TableCell className="text-center">

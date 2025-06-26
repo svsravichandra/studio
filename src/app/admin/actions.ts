@@ -1,8 +1,8 @@
 'use server';
 
 import { db } from '@/lib/firebase';
-import { Product, Order, UserProfile } from '@/lib/types';
-import { collection, collectionGroup, getDocs, doc, updateDoc, addDoc, deleteDoc, setDoc } from 'firebase/firestore';
+import { Product, Order, UserProfile, Address } from '@/lib/types';
+import { collection, collectionGroup, getDocs, doc, updateDoc, addDoc, deleteDoc, setDoc, Timestamp } from 'firebase/firestore';
 import { revalidatePath } from 'next/cache';
 
 // Orders
@@ -28,13 +28,15 @@ export async function getAllOrders(): Promise<(Order & { user: { id: string, nam
     const orders = ordersSnapshot.docs.map(docSnapshot => {
         const data = docSnapshot.data();
         const userId = docSnapshot.ref.parent.parent!.id;
+        const createdAtTimestamp = data.createdAt as Timestamp;
         return {
             id: docSnapshot.id,
             userId,
-            date: (data.createdAt?.toDate() ?? new Date()).toISOString(),
+            createdAt: createdAtTimestamp ? createdAtTimestamp.toDate().toISOString() : new Date().toISOString(),
             status: data.status,
             total: data.total,
             items: data.items,
+            shippingAddress: data.shippingAddress,
             user: {
                 id: userId,
                 name: users[userId]?.name || 'Unknown User',
@@ -43,7 +45,7 @@ export async function getAllOrders(): Promise<(Order & { user: { id: string, nam
         } as Order & { user: { id: string, name: string, email: string } };
     });
 
-    return orders.sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
+    return orders.sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
 }
 
 export async function updateOrderStatus({ userId, orderId, status }: { userId: string, orderId: string, status: Order['status'] }) {
@@ -65,9 +67,17 @@ export async function getAllProducts(): Promise<Product[]> {
 export async function upsertProduct(product: Partial<Product>) {
     if (!db) throw new Error("DB connection failed");
     const productData = { ...product };
-    // Ensure numeric price and boolean featured
+
+    // Ensure correct types
     productData.price = Number(productData.price) || 0;
-    productData.featured = !!productData.featured;
+    productData.stock = Number(productData.stock) || 0;
+    productData.isFeatured = !!productData.isFeatured;
+    if (typeof productData.tags === 'string') {
+        productData.tags = (productData.tags as string).split(',').map(tag => tag.trim());
+    } else if (!Array.isArray(productData.tags)) {
+        productData.tags = [];
+    }
+
 
     if (product.id) {
         const productRef = doc(db, 'products', product.id);
@@ -100,13 +110,16 @@ export async function getAllUsers(): Promise<UserProfile[]> {
     const usersSnapshot = await getDocs(collection(db, 'users'));
     return usersSnapshot.docs.map(doc => {
         const data = doc.data();
+        const createdAtTimestamp = data.createdAt as Timestamp;
         return {
             uid: doc.id,
             displayName: data.displayName || '',
             email: data.email || '',
+            phone: data.phone || '',
+            address: data.address || {},
             photoURL: data.photoURL || '',
-            role: data.role || 'user',
-            createdAt: data.createdAt?.toDate().toISOString() || new Date().toISOString(),
+            role: data.role || 'customer',
+            createdAt: createdAtTimestamp ? createdAtTimestamp.toDate().toISOString() : new Date().toISOString(),
         };
     });
 }

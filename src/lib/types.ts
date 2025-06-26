@@ -1,45 +1,67 @@
 
-export interface Product {
-  id: string;
-  name: string;
-  description: string;
-  price: number;
-  image: string;
-  hint: string;
-  featured?: boolean;
-}
-
-export interface CartItem extends Product {
-  quantity: number;
-}
-
-export interface OrderItem extends Product {
-    quantity: number;
-}
-
-export interface Order {
-    id: string;
-    userId: string; // Keep track of which user this order belongs to
-    date: string;
-    status: 'Processing' | 'Shipped' | 'Delivered' | 'Cancelled' | 'Returned' | 'Refunded';
-    total: number;
-    items: OrderItem[];
-}
-
-export interface Subscription {
-    id: string;
-    status: 'Active' | 'Paused' | 'Cancelled';
-    frequency: 'Monthly' | 'Quarterly';
-    nextBillingDate: string;
-    products: OrderItem[];
-    total: number;
+export interface Address {
+  line1: string;
+  line2?: string;
+  city: string;
+  state: string;
+  zip: string;
+  country: string;
 }
 
 export interface UserProfile {
     uid: string;
     displayName: string;
     email: string;
-    photoURL: string;
-    role: 'admin' | 'user';
+    phone?: string;
+    address?: Address;
+    role: 'customer' | 'admin';
     createdAt: string;
+    photoURL?: string; // Kept for Google Sign-in display
+}
+
+export interface Product {
+  id: string;
+  name: string;
+  description: string;
+  price: number;
+  gritLevel: 'None' | 'Light' | 'Medium' | 'Heavy';
+  scentProfile: string;
+  stock: number;
+  isFeatured: boolean;
+  imageUrl: string;
+  tags: string[];
+}
+
+export interface CartItem extends Product {
+  quantity: number;
+}
+
+export interface OrderProduct {
+    productId: string;
+    name: string; // Denormalized for easier display
+    imageUrl: string; // Denormalized for easier display
+    quantity: number;
+    price: number; // Price at time of purchase
+}
+
+export interface Order {
+    id: string;
+    userId: string;
+    items: OrderProduct[];
+    total: number;
+    status: 'processing' | 'shipped' | 'delivered' | 'cancelled';
+    shippingAddress: Address;
+    paymentIntentId?: string;
+    createdAt: any; // Can be a server timestamp
+}
+
+export interface Subscription {
+    id: string;
+    userId: string;
+    items: string[]; // Array of product IDs
+    frequency: 'monthly' | 'bi-monthly';
+    active: boolean;
+    stripeSubscriptionId?: string;
+    nextDelivery: string;
+    createdAt: any; // Can be a server timestamp
 }

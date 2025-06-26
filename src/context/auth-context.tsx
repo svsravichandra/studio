@@ -15,11 +15,13 @@ import {
 } from 'firebase/auth';
 import { auth, db } from '@/lib/firebase';
 import { useRouter } from 'next/navigation';
-import { doc, setDoc, getDoc } from 'firebase/firestore';
+import { doc, setDoc, getDoc, serverTimestamp } from 'firebase/firestore';
+import type { UserProfile } from '@/lib/types';
 
 
 interface AuthContextType {
   user: User | null;
+  userProfile: UserProfile | null;
   isAdmin: boolean;
   loading: boolean;
   signInWithEmail: (email: string, pass: string) => Promise<void>;
@@ -50,33 +52,38 @@ const getFirebaseAuthErrorMessage = (error: AuthError): string => {
     }
 }
 
-const createUserProfileDocument = async (user: User) => {
+const createUserProfileDocument = async (user: User): Promise<UserProfile | null> => {
     if (!db) return null;
     const userRef = doc(db, 'users', user.uid);
     const snapshot = await getDoc(userRef);
 
     if (!snapshot.exists()) {
         const { displayName, email, photoURL } = user;
-        const createdAt = new Date();
+        const createdAt = serverTimestamp();
+        const newUserProfile: Omit<UserProfile, 'uid' | 'createdAt'> = {
+            displayName: displayName || 'New User',
+            email: email || '',
+            photoURL: photoURL || '',
+            role: 'customer' // Default role
+        };
         try {
             await setDoc(userRef, {
-                displayName,
-                email,
-                photoURL,
+                ...newUserProfile,
                 createdAt,
-                role: 'user' // Default role
             });
-            return await getDoc(userRef);
+            const newDoc = await getDoc(userRef);
+            return { uid: newDoc.id, ...newDoc.data() } as UserProfile;
         } catch (error) {
             console.error("Error creating user document", error);
             return null;
         }
     }
-    return snapshot;
+    return { uid: snapshot.id, ...snapshot.data() } as UserProfile;
 };
 
 export const AuthProvider = ({ children }: { children: ReactNode }) => {
   const [user, setUser] = useState<User | null>(null);
+  const [userProfile, setUserProfile] = useState<UserProfile | null>(null);
   const [isAdmin, setIsAdmin] = useState(false);
   const [loading, setLoading] = useState(true);
   const router = useRouter();
@@ -90,14 +97,16 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
 
     const unsubscribe = onAuthStateChanged(auth, async (user) => {
       if (user) {
-        const userProfileDoc = await createUserProfileDocument(user);
-        if (userProfileDoc?.data()?.role === 'admin') {
+        const profile = await createUserProfileDocument(user);
+        setUserProfile(profile);
+        if (profile?.role === 'admin') {
             setIsAdmin(true);
         } else {
             setIsAdmin(false);
         }
       } else {
           setIsAdmin(false);
+          setUserProfile(null);
       }
       setUser(user);
       setLoading(false);
@@ -128,8 +137,9 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
         const userCredential = await createUserWithEmailAndPassword(auth, email, pass);
         if (userCredential.user) {
             await updateProfile(userCredential.user, { displayName: name });
-            await createUserProfileDocument(userCredential.user);
+            const profile = await createUserProfileDocument(userCredential.user);
             setUser(auth.currentUser); 
+            setUserProfile(profile);
         }
         router.push('/dashboard');
     } catch (error) {
@@ -164,6 +174,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
 
   const value = useMemo(() => ({ 
       user, 
+      userProfile,
       isAdmin,
       loading, 
       signInWithEmail, 
@@ -171,7 +182,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
       signInWithGoogle, 
       signOut, 
       authInitialized 
-  }), [user, isAdmin, loading, signInWithEmail, signUpWithEmail, signInWithGoogle, signOut, authInitialized]);
+  }), [user, userProfile, isAdmin, loading, signInWithEmail, signUpWithEmail, signInWithGoogle, signOut, authInitialized]);
 
   return (
     <AuthContext.Provider value={value}>

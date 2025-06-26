@@ -13,6 +13,7 @@ import { upsertProduct } from '../actions';
 import type { Product } from '@/lib/types';
 import { useTransition } from 'react';
 import { Loader2 } from 'lucide-react';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 
 const formSchema = z.object({
   id: z.string().optional(),
@@ -22,9 +23,15 @@ const formSchema = z.object({
     (a) => parseFloat(z.string().parse(a)),
     z.number().positive("Price must be positive")
   ),
-  image: z.string().url("Must be a valid URL"),
-  hint: z.string().min(1, "AI Hint is required"),
-  featured: z.boolean().default(false),
+  imageUrl: z.string().url("Must be a valid URL"),
+  stock: z.preprocess(
+    (a) => parseInt(z.string().parse(a), 10),
+    z.number().int().nonnegative("Stock cannot be negative")
+  ),
+  gritLevel: z.enum(['None', 'Light', 'Medium', 'Heavy']),
+  scentProfile: z.string().min(1, "Scent profile is required"),
+  tags: z.string().min(1, "Tags are required"),
+  isFeatured: z.boolean().default(false),
 });
 
 type ProductFormData = z.infer<typeof formSchema>;
@@ -45,16 +52,19 @@ export function ProductForm({ product, onSuccess }: ProductFormProps) {
       name: product?.name || '',
       description: product?.description || '',
       price: product?.price || 0,
-      image: product?.image || 'https://placehold.co/400x400.png',
-      hint: product?.hint || '',
-      featured: product?.featured || false,
+      imageUrl: product?.imageUrl || 'https://placehold.co/400x400.png',
+      stock: product?.stock || 0,
+      gritLevel: product?.gritLevel || 'Medium',
+      scentProfile: product?.scentProfile || '',
+      tags: product?.tags?.join(', ') || '',
+      isFeatured: product?.isFeatured || false,
     },
   });
 
   const onSubmit: SubmitHandler<ProductFormData> = (data) => {
     startTransition(async () => {
       try {
-        const result = await upsertProduct(data);
+        const result = await upsertProduct(data as Partial<Product>);
         if (result.success) {
           toast({ title: "Success", description: result.message });
           onSuccess?.();
@@ -69,61 +79,102 @@ export function ProductForm({ product, onSuccess }: ProductFormProps) {
 
   return (
     <form onSubmit={handleSubmit(onSubmit)} className="grid gap-6 py-4">
-      <div className="grid grid-cols-4 items-center gap-4">
-        <Label htmlFor="name" className="text-right">Name</Label>
-        <div className="col-span-3">
-          <Input id="name" {...register("name")} className="w-full" />
-          {errors.name && <p className="text-xs text-destructive mt-1">{errors.name.message}</p>}
+        <div className="grid grid-cols-4 items-center gap-4">
+            <Label htmlFor="name" className="text-right">Name</Label>
+            <div className="col-span-3">
+            <Input id="name" {...register("name")} className="w-full" />
+            {errors.name && <p className="text-xs text-destructive mt-1">{errors.name.message}</p>}
+            </div>
         </div>
-      </div>
 
-      <div className="grid grid-cols-4 items-center gap-4">
-        <Label htmlFor="description" className="text-right">Description</Label>
+        <div className="grid grid-cols-4 items-center gap-4">
+            <Label htmlFor="description" className="text-right">Description</Label>
+            <div className="col-span-3">
+            <Textarea id="description" {...register("description")} className="w-full" />
+            {errors.description && <p className="text-xs text-destructive mt-1">{errors.description.message}</p>}
+            </div>
+        </div>
+      
+        <div className="grid grid-cols-2 gap-4">
+            <div className="grid grid-cols-2 items-center gap-4">
+                <Label htmlFor="price" className="text-right">Price</Label>
+                <div className="col-span-1">
+                    <Input id="price" type="number" step="0.01" {...register("price")} className="w-full" />
+                    {errors.price && <p className="text-xs text-destructive mt-1">{errors.price.message}</p>}
+                </div>
+            </div>
+            <div className="grid grid-cols-2 items-center gap-4">
+                <Label htmlFor="stock" className="text-right">Stock</Label>
+                <div className="col-span-1">
+                    <Input id="stock" type="number" {...register("stock")} className="w-full" />
+                    {errors.stock && <p className="text-xs text-destructive mt-1">{errors.stock.message}</p>}
+                </div>
+            </div>
+        </div>
+
+        <div className="grid grid-cols-4 items-center gap-4">
+            <Label htmlFor="imageUrl" className="text-right">Image URL</Label>
+            <div className="col-span-3">
+            <Input id="imageUrl" {...register("imageUrl")} className="w-full" />
+            {errors.imageUrl && <p className="text-xs text-destructive mt-1">{errors.imageUrl.message}</p>}
+            </div>
+        </div>
+
+        <div className="grid grid-cols-4 items-center gap-4">
+            <Label htmlFor="scentProfile" className="text-right">Scent</Label>
+            <div className="col-span-3">
+            <Input id="scentProfile" {...register("scentProfile")} className="w-full" placeholder="e.g. Cedarwood & Pine" />
+            {errors.scentProfile && <p className="text-xs text-destructive mt-1">{errors.scentProfile.message}</p>}
+            </div>
+        </div>
+
+        <div className="grid grid-cols-4 items-center gap-4">
+            <Label htmlFor="gritLevel" className="text-right">Grit Level</Label>
+            <div className="col-span-3">
+                <Controller
+                    name="gritLevel"
+                    control={control}
+                    render={({ field }) => (
+                        <Select onValueChange={field.onChange} defaultValue={field.value}>
+                            <SelectTrigger>
+                                <SelectValue placeholder="Select grit level" />
+                            </SelectTrigger>
+                            <SelectContent>
+                                <SelectItem value="None">None</SelectItem>
+                                <SelectItem value="Light">Light</SelectItem>
+                                <SelectItem value="Medium">Medium</SelectItem>
+                                <SelectItem value="Heavy">Heavy</SelectItem>
+                            </SelectContent>
+                        </Select>
+                    )}
+                />
+            {errors.gritLevel && <p className="text-xs text-destructive mt-1">{errors.gritLevel.message}</p>}
+            </div>
+        </div>
+
+       <div className="grid grid-cols-4 items-center gap-4">
+        <Label htmlFor="tags" className="text-right">Tags</Label>
         <div className="col-span-3">
-          <Textarea id="description" {...register("description")} className="w-full" />
-          {errors.description && <p className="text-xs text-destructive mt-1">{errors.description.message}</p>}
+          <Input id="tags" {...register("tags")} className="w-full" placeholder="cedar, pine, medium grit"/>
+          {errors.tags && <p className="text-xs text-destructive mt-1">{errors.tags.message}</p>}
         </div>
       </div>
       
        <div className="grid grid-cols-4 items-center gap-4">
-        <Label htmlFor="price" className="text-right">Price</Label>
-        <div className="col-span-3">
-          <Input id="price" type="number" step="0.01" {...register("price")} className="w-full" />
-           {errors.price && <p className="text-xs text-destructive mt-1">{errors.price.message}</p>}
-        </div>
-      </div>
-
-      <div className="grid grid-cols-4 items-center gap-4">
-        <Label htmlFor="image" className="text-right">Image URL</Label>
-        <div className="col-span-3">
-          <Input id="image" {...register("image")} className="w-full" />
-          {errors.image && <p className="text-xs text-destructive mt-1">{errors.image.message}</p>}
-        </div>
-      </div>
-
-       <div className="grid grid-cols-4 items-center gap-4">
-        <Label htmlFor="hint" className="text-right">AI Hint</Label>
-        <div className="col-span-3">
-          <Input id="hint" {...register("hint")} className="w-full" placeholder="e.g. coffee soap"/>
-          {errors.hint && <p className="text-xs text-destructive mt-1">{errors.hint.message}</p>}
-        </div>
-      </div>
-      
-       <div className="grid grid-cols-4 items-center gap-4">
-        <Label htmlFor="featured" className="text-right">Featured</Label>
+        <Label htmlFor="isFeatured" className="text-right">Featured</Label>
         <div className="col-span-3 flex items-center">
             <Controller
-                name="featured"
+                name="isFeatured"
                 control={control}
                 render={({ field }) => (
                     <Switch
-                        id="featured"
+                        id="isFeatured"
                         checked={field.value}
                         onCheckedChange={field.onChange}
                     />
                 )}
             />
-          {errors.featured && <p className="text-xs text-destructive mt-1">{errors.featured.message}</p>}
+          {errors.isFeatured && <p className="text-xs text-destructive mt-1">{errors.isFeatured.message}</p>}
         </div>
       </div>
 
