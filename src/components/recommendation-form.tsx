@@ -64,7 +64,7 @@ export function RecommendationForm() {
                   <FormLabel className="text-primary font-headline text-lg">What are you looking for in a soap?</FormLabel>
                   <FormControl>
                     <Textarea
-                      placeholder="e.g., 'Something for dry skin, maybe with a fresh, clean scent like pine or mint. I prefer all-natural ingredients.'"
+                      placeholder="e.g., 'Something for dry skin, maybe with a fresh, clean scent like pine or mint. I prefer a medium grit.'"
                       className="resize-none h-32 bg-card border-primary/30 focus:border-accent focus:ring-accent"
                       {...field}
                     />

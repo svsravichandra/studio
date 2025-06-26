@@ -30,7 +30,7 @@ const formSchema = z.object({
   ),
   gritLevel: z.enum(['None', 'Light', 'Medium', 'Heavy']),
   scentProfile: z.string().min(1, "Scent profile is required"),
-  tags: z.string().min(1, "Tags are required"),
+  tags: z.string().min(1, "Tags are required (comma-separated)"),
   isFeatured: z.boolean().default(false),
 });
 

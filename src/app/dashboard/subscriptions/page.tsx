@@ -71,7 +71,7 @@ export default function SubscriptionsPage() {
         const nextDeliveryDate = new Date();
         nextDeliveryDate.setMonth(nextDeliveryDate.getMonth() + 1);
 
-        const defaultProductIds = ['scrubby-grit', 'whiskey-oak'];
+        const defaultProductIds = ['timber-trail', 'whiskey-oak'];
 
         const defaultSubscription: Omit<Subscription, 'id'> = {
             userId: user.uid,
@@ -159,7 +159,7 @@ export default function SubscriptionsPage() {
                 <div className="mt-2 space-y-3">
                     {products.map(item => (
                         <div key={item.id} className="flex items-center gap-3">
-                            <Image src={item.imageUrl} alt={item.name} width={50} height={50} className="rounded-md" data-ai-hint={item.tags.join(' ')}/>
+                            <Image src={item.imageUrl} alt={item.name} width={50} height={50} className="rounded-md object-cover" data-ai-hint={item.tags.join(' ')}/>
                             <p className="flex-grow">{item.name}</p>
                             <p className="text-muted-foreground">${item.price.toFixed(2)}</p>
                         </div>

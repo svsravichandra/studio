@@ -29,7 +29,15 @@ const addressSchema = z.object({
 });
 
 type FormValues = {
-  shippingAddress: Address & { name: string };
+  shippingAddress: {
+    name: string;
+    line1: string;
+    line2?: string;
+    city: string;
+    state: string;
+    zip: string;
+    country: string;
+  };
   payment: {
     cardName: string;
     cardNumber: string;
@@ -45,19 +53,56 @@ export default function CheckoutPage() {
   const router = useRouter();
   const [isProcessing, setIsProcessing] = useState(false);
 
-  const { register, handleSubmit, formState: { errors } } = useForm<FormValues>({
+  const { register, handleSubmit, formState: { errors }, reset } = useForm<FormValues>({
+    resolver: zodResolver(z.object({
+      shippingAddress: addressSchema,
+      payment: z.object({ // Basic validation, not for production
+        cardName: z.string().min(1, "Name on card is required"),
+        cardNumber: z.string().min(1, "Card number is required"),
+        expiry: z.string().min(1, "Expiry is required"),
+        cvc: z.string().min(1, "CVC is required"),
+      })
+    })),
     defaultValues: {
       shippingAddress: {
-        name: userProfile?.displayName || "",
-        line1: userProfile?.address?.line1 || "",
-        line2: userProfile?.address?.line2 || "",
-        city: userProfile?.address?.city || "",
-        state: userProfile?.address?.state || "",
-        zip: userProfile?.address?.zip || "",
-        country: userProfile?.address?.country || "",
+        name: "",
+        line1: "",
+        line2: "",
+        city: "",
+        state: "",
+        zip: "",
+        country: "",
+      },
+      payment: {
+        cardName: "",
+        cardNumber: "",
+        expiry: "",
+        cvc: "",
       }
     }
   });
+
+  useEffect(() => {
+     if (userProfile) {
+        reset({
+            shippingAddress: {
+                name: userProfile.displayName || "",
+                line1: userProfile.address?.line1 || "",
+                line2: userProfile.address?.line2 || "",
+                city: userProfile.address?.city || "",
+                state: userProfile.address?.state || "",
+                zip: userProfile.address?.zip || "",
+                country: userProfile.address?.country || "USA",
+            },
+            payment: {
+              cardName: "",
+              cardNumber: "",
+              expiry: "",
+              cvc: "",
+            }
+        })
+     }
+  }, [userProfile, reset])
 
 
   useEffect(() => {
@@ -76,6 +121,7 @@ export default function CheckoutPage() {
             description: "You must be logged in to place an order.",
             variant: "destructive"
         });
+        router.push('/login');
         return;
     }
 
@@ -96,8 +142,6 @@ export default function CheckoutPage() {
                 quantity: item.quantity,
                 price: item.price,
             })),
-            subtotal,
-            shipping,
             total,
             shippingAddress,
         });
@@ -142,29 +186,35 @@ export default function CheckoutPage() {
               <div className="space-y-2">
                 <Label htmlFor="name">Full Name</Label>
                 <Input id="name" placeholder="John Doe" {...register("shippingAddress.name")} className="bg-background" />
+                {errors.shippingAddress?.name && <p className="text-xs text-destructive mt-1">{errors.shippingAddress.name.message}</p>}
               </div>
               <div className="space-y-2">
                 <Label htmlFor="address">Address</Label>
                 <Input id="address" placeholder="123 Grit St." {...register("shippingAddress.line1")} className="bg-background" />
+                 {errors.shippingAddress?.line1 && <p className="text-xs text-destructive mt-1">{errors.shippingAddress.line1.message}</p>}
               </div>
               <div className="grid grid-cols-2 gap-4">
                 <div className="space-y-2">
                   <Label htmlFor="city">City</Label>
                   <Input id="city" placeholder="San Francisco" {...register("shippingAddress.city")} className="bg-background" />
+                   {errors.shippingAddress?.city && <p className="text-xs text-destructive mt-1">{errors.shippingAddress.city.message}</p>}
                 </div>
                  <div className="space-y-2">
                   <Label htmlFor="state">State / Province</Label>
                   <Input id="state" placeholder="CA" {...register("shippingAddress.state")} className="bg-background" />
+                   {errors.shippingAddress?.state && <p className="text-xs text-destructive mt-1">{errors.shippingAddress.state.message}</p>}
                 </div>
               </div>
               <div className="grid grid-cols-2 gap-4">
                 <div className="space-y-2">
                   <Label htmlFor="zip">ZIP / Postal Code</Label>
                   <Input id="zip" placeholder="94103" {...register("shippingAddress.zip")} className="bg-background" />
+                   {errors.shippingAddress?.zip && <p className="text-xs text-destructive mt-1">{errors.shippingAddress.zip.message}</p>}
                 </div>
                  <div className="space-y-2">
                   <Label htmlFor="country">Country</Label>
                   <Input id="country" placeholder="USA" {...register("shippingAddress.country")} className="bg-background" />
+                   {errors.shippingAddress?.country && <p className="text-xs text-destructive mt-1">{errors.shippingAddress.country.message}</p>}
                 </div>
               </div>
             </CardContent>
@@ -179,19 +229,23 @@ export default function CheckoutPage() {
                <div className="space-y-2">
                 <Label htmlFor="card-name">Name on Card</Label>
                 <Input id="card-name" placeholder="John M. Doe" {...register("payment.cardName")} className="bg-background" />
+                 {errors.payment?.cardName && <p className="text-xs text-destructive mt-1">{errors.payment.cardName.message}</p>}
               </div>
               <div className="space-y-2">
                 <Label htmlFor="card-number">Card Number</Label>
                 <Input id="card-number" placeholder="**** **** **** 1234" {...register("payment.cardNumber")} className="bg-background" />
+                 {errors.payment?.cardNumber && <p className="text-xs text-destructive mt-1">{errors.payment.cardNumber.message}</p>}
               </div>
               <div className="grid grid-cols-2 gap-4">
                 <div className="space-y-2">
                   <Label htmlFor="expiry">Expiration</Label>
                   <Input id="expiry" placeholder="MM/YY" {...register("payment.expiry")} className="bg-background" />
+                   {errors.payment?.expiry && <p className="text-xs text-destructive mt-1">{errors.payment.expiry.message}</p>}
                 </div>
                  <div className="space-y-2">
                   <Label htmlFor="cvc">CVC</Label>
                   <Input id="cvc" placeholder="123" {...register("payment.cvc")} className="bg-background" />
+                   {errors.payment?.cvc && <p className="text-xs text-destructive mt-1">{errors.payment.cvc.message}</p>}
                 </div>
               </div>
             </CardContent>

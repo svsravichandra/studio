@@ -28,7 +28,7 @@ import {
 } from "@/components/ui/alert-dialog";
 
 
-export function ProductActions({ product, onEdit }: { product: Product, onEdit: (product: Product) => void }) {
+export function ProductActions({ product, onEdit, onDeleted }: { product: Product, onEdit: (product: Product) => void, onDeleted: () => void }) {
   const { toast } = useToast();
   const [isPending, startTransition] = useTransition();
 
@@ -37,6 +37,7 @@ export function ProductActions({ product, onEdit }: { product: Product, onEdit: 
       try {
         await deleteProduct(product.id);
         toast({ title: "Success", description: "Product deleted." });
+        onDeleted();
       } catch (error) {
         toast({ title: "Error", description: "Could not delete product.", variant: "destructive" });
       }
@@ -78,7 +79,7 @@ export function ProductActions({ product, onEdit }: { product: Product, onEdit: 
         <AlertDialogFooter>
           <AlertDialogCancel>Cancel</AlertDialogCancel>
           <AlertDialogAction onClick={handleDelete} className="bg-destructive hover:bg-destructive/90">
-            Delete
+            {isPending ? 'Deleting...' : 'Delete'}
           </AlertDialogAction>
         </AlertDialogFooter>
       </AlertDialogContent>

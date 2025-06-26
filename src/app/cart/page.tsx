@@ -32,7 +32,7 @@ export default function CartPage() {
             <div className="flex flex-col gap-6">
               {cartItems.map(item => (
                 <div key={item.id} className="flex items-center gap-4 bg-card p-4 rounded-lg border border-border/50">
-                  <Image src={item.imageUrl} alt={item.name} width={100} height={100} className="rounded-md" data-ai-hint={item.tags.join(' ')}/>
+                  <Image src={item.imageUrl} alt={item.name} width={100} height={100} className="rounded-md object-cover" data-ai-hint={item.tags.join(' ')}/>
                   <div className="flex-grow">
                     <h2 className="font-headline text-lg uppercase">{item.name}</h2>
                     <p className="text-muted-foreground">${item.price.toFixed(2)}</p>
@@ -55,7 +55,7 @@ export default function CartPage() {
             </div>
           </div>
 
-          <div className="bg-card p-6 rounded-lg border border-border/50 h-fit">
+          <div className="bg-card p-6 rounded-lg border border-border/50 h-fit sticky top-24">
             <h2 className="text-2xl font-headline uppercase mb-4">Order Summary</h2>
             <div className="space-y-3">
               <div className="flex justify-between">

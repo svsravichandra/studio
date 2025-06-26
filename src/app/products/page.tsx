@@ -5,17 +5,14 @@ import { ProductList } from "./product-list";
 
 async function getProducts(): Promise<{ products: Product[] } | { error: string }> {
   if (!db) {
-    return { error: "Database connection failed. Please ensure your Firebase environment variables are set correctly in the .env file and that the server has been restarted." };
+    return { error: "Database connection failed. Please ensure your Firebase environment variables are set correctly." };
   }
   try {
-    console.log("Attempting to fetch products from 'products' collection...");
     const productsRef = collection(db, "products");
     const querySnapshot = await getDocs(productsRef);
-    
-    console.log(`Firestore query returned ${querySnapshot.size} documents.`);
 
     if (querySnapshot.empty) {
-      return { error: "Query successful, but no products were found in the 'products' collection. Please check your Firestore database to ensure you have added documents to this specific collection and that they are not empty." };
+      return { error: "No products were found in the 'products' collection. Please add products via the admin dashboard." };
     }
 
     const productsData: Product[] = [];
@@ -25,7 +22,7 @@ async function getProducts(): Promise<{ products: Product[] } | { error: string 
     return { products: productsData };
   } catch (error: any) {
     console.error("Error fetching products: ", error);
-    return { error: `Failed to fetch products from the database. This could be due to Firestore security rules or a configuration issue. Please check your server logs for the full error details. Error: ${error.message}` };
+    return { error: `Failed to fetch products from the database. Error: ${error.message}` };
   }
 }
 

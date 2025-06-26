@@ -4,7 +4,7 @@ import Image from 'next/image';
 import { RecommendationForm } from '@/components/recommendation-form';
 import Link from 'next/link';
 import type { Product } from '@/lib/types';
-import { collection, getDocs, query, where } from 'firebase/firestore';
+import { collection, getDocs, query, where, limit } from 'firebase/firestore';
 import { db } from '@/lib/firebase';
 import { FeaturedProducts } from '@/components/featured-products';
 
@@ -13,12 +13,9 @@ async function getFeaturedProducts(): Promise<{ products: Product[] } | { error:
     return { error: "Database connection failed. Please ensure your Firebase environment variables are set correctly." };
   }
   try {
-    console.log("Attempting to fetch featured products from 'products' collection...");
     const productsRef = collection(db, "products");
-    const q = query(productsRef, where("isFeatured", "==", true));
+    const q = query(productsRef, where("isFeatured", "==", true), limit(4));
     const querySnapshot = await getDocs(q);
-
-    console.log(`Firestore featured products query returned ${querySnapshot.size} documents.`);
 
     const products: Product[] = [];
     querySnapshot.forEach((doc) => {

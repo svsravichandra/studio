@@ -15,7 +15,7 @@ import {
 } from 'firebase/auth';
 import { auth, db } from '@/lib/firebase';
 import { useRouter } from 'next/navigation';
-import { doc, setDoc, getDoc, serverTimestamp } from 'firebase/firestore';
+import { doc, setDoc, getDoc, serverTimestamp, Timestamp } from 'firebase/firestore';
 import type { UserProfile } from '@/lib/types';
 
 
@@ -52,33 +52,42 @@ const getFirebaseAuthErrorMessage = (error: AuthError): string => {
     }
 }
 
+const mapFirebaseUserToProfile = (firebaseUser: User, existingData?: any): Omit<UserProfile, 'uid' | 'createdAt'> => {
+    return {
+        displayName: firebaseUser.displayName || existingData?.displayName || 'New User',
+        email: firebaseUser.email || '',
+        photoURL: firebaseUser.photoURL || '',
+        role: existingData?.role || 'customer', // Default role
+        phone: existingData?.phone || '',
+        address: existingData?.address || {},
+    };
+};
+
 const createUserProfileDocument = async (user: User): Promise<UserProfile | null> => {
     if (!db) return null;
     const userRef = doc(db, 'users', user.uid);
     const snapshot = await getDoc(userRef);
 
     if (!snapshot.exists()) {
-        const { displayName, email, photoURL } = user;
-        const createdAt = serverTimestamp();
-        const newUserProfile: Omit<UserProfile, 'uid' | 'createdAt'> = {
-            displayName: displayName || 'New User',
-            email: email || '',
-            photoURL: photoURL || '',
-            role: 'customer' // Default role
-        };
+        const newUserProfileData = mapFirebaseUserToProfile(user);
         try {
             await setDoc(userRef, {
-                ...newUserProfile,
-                createdAt,
+                ...newUserProfileData,
+                createdAt: serverTimestamp(),
             });
             const newDoc = await getDoc(userRef);
-            return { uid: newDoc.id, ...newDoc.data() } as UserProfile;
+            const data = newDoc.data();
+            const createdAtTimestamp = data?.createdAt as Timestamp;
+            return { uid: newDoc.id, ...data, createdAt: createdAtTimestamp?.toDate().toISOString() } as UserProfile;
         } catch (error) {
             console.error("Error creating user document", error);
             return null;
         }
     }
-    return { uid: snapshot.id, ...snapshot.data() } as UserProfile;
+    
+    const data = snapshot.data();
+    const createdAtTimestamp = data.createdAt as Timestamp;
+    return { uid: snapshot.id, ...data, createdAt: createdAtTimestamp?.toDate().toISOString() } as UserProfile;
 };
 
 export const AuthProvider = ({ children }: { children: ReactNode }) => {
@@ -99,11 +108,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
       if (user) {
         const profile = await createUserProfileDocument(user);
         setUserProfile(profile);
-        if (profile?.role === 'admin') {
-            setIsAdmin(true);
-        } else {
-            setIsAdmin(false);
-        }
+        setIsAdmin(profile?.role === 'admin');
       } else {
           setIsAdmin(false);
           setUserProfile(null);
@@ -117,7 +122,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
   
   const signInWithGoogle = useCallback(async () => {
     if (!auth) {
-      console.error("Cannot sign in: Firebase is not initialized. Please check your .env file.");
+      console.error("Cannot sign in: Firebase is not initialized.");
       return;
     }
     const provider = new GoogleAuthProvider();
@@ -137,9 +142,13 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
         const userCredential = await createUserWithEmailAndPassword(auth, email, pass);
         if (userCredential.user) {
             await updateProfile(userCredential.user, { displayName: name });
-            const profile = await createUserProfileDocument(userCredential.user);
-            setUser(auth.currentUser); 
-            setUserProfile(profile);
+            // Re-fetch the user to get the updated profile
+            const updatedUser = auth.currentUser;
+            if(updatedUser) {
+              const profile = await createUserProfileDocument(updatedUser);
+              setUser(updatedUser);
+              setUserProfile(profile);
+            }
         }
         router.push('/dashboard');
     } catch (error) {

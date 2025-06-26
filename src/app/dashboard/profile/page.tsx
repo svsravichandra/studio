@@ -11,6 +11,7 @@ import { Loader2 } from "lucide-react";
 import { useForm } from "react-hook-form";
 import { useToast } from "@/hooks/use-toast";
 import type { UserProfile } from "@/lib/types";
+import { useEffect } from "react";
 
 type ProfileFormData = Omit<UserProfile, 'uid' | 'role' | 'createdAt' | 'email' | 'photoURL'>;
 
@@ -18,26 +19,32 @@ export default function ProfilePage() {
     const { user, userProfile, loading } = useAuth();
     const { toast } = useToast();
     
-    const { register, handleSubmit, reset, formState: { isDirty, isSubmitting } } = useForm<ProfileFormData>({
-        defaultValues: {
-            displayName: userProfile?.displayName || '',
-            phone: userProfile?.phone || '',
-            address: {
-                line1: userProfile?.address?.line1 || '',
-                line2: userProfile?.address?.line2 || '',
-                city: userProfile?.address?.city || '',
-                state: userProfile?.address?.state || '',
-                zip: userProfile?.address?.zip || '',
-                country: userProfile?.address?.country || '',
-            }
+    const { register, handleSubmit, reset, formState: { isDirty, isSubmitting } } = useForm<ProfileFormData>();
+
+    useEffect(() => {
+        if(userProfile) {
+            reset({
+                displayName: userProfile.displayName || '',
+                phone: userProfile.phone || '',
+                address: {
+                    line1: userProfile.address?.line1 || '',
+                    line2: userProfile.address?.line2 || '',
+                    city: userProfile.address?.city || '',
+                    state: userProfile.address?.state || '',
+                    zip: userProfile.address?.zip || '',
+                    country: userProfile.address?.country || '',
+                }
+            });
         }
-    });
+    }, [userProfile, reset]);
 
     const onSubmit = async (data: ProfileFormData) => {
         if (!user || !db) return;
         try {
             const userRef = doc(db, "users", user.uid);
-            await updateDoc(userRef, data);
+            // Firestore doesn't like undefined values
+            const dataToSave = JSON.parse(JSON.stringify(data));
+            await updateDoc(userRef, dataToSave);
             toast({
                 title: "Profile Updated",
                 description: "Your information has been saved.",
@@ -84,7 +91,7 @@ export default function ProfilePage() {
                     </div>
                     <div className="space-y-2">
                         <Label htmlFor="email">Email Address</Label>
-                        <Input id="email" type="email" defaultValue={user?.email || ''} className="bg-background" readOnly />
+                        <Input id="email" type="email" defaultValue={user?.email || ''} className="bg-background" disabled />
                     </div>
                   </div>
                    <div className="space-y-2">

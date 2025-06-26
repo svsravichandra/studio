@@ -14,6 +14,9 @@ export async function getAllOrders(): Promise<(Order & { user: { id: string, nam
     
     const users: Record<string, {name: string, email: string}> = {};
     if (userIds.size > 0) {
+        // Since we cannot query a collection by a list of document IDs directly that exceeds 30,
+        // we fetch all users and filter them in memory. 
+        // For larger scale applications, this should be optimized.
         const usersSnapshot = await getDocs(collection(db, 'users'));
         usersSnapshot.forEach(doc => {
             if (userIds.has(doc.id)) {
@@ -48,6 +51,7 @@ export async function getAllOrders(): Promise<(Order & { user: { id: string, nam
     return orders.sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
 }
 
+
 export async function updateOrderStatus({ userId, orderId, status }: { userId: string, orderId: string, status: Order['status'] }) {
     if (!db) throw new Error("DB connection failed");
     const orderRef = doc(db, `users/${userId}/orders`, orderId);
@@ -66,14 +70,14 @@ export async function getAllProducts(): Promise<Product[]> {
 
 export async function upsertProduct(product: Partial<Product>) {
     if (!db) throw new Error("DB connection failed");
-    const productData = { ...product };
+    const productData: any = { ...product };
 
-    // Ensure correct types
+    // Ensure correct types before sending to Firestore
     productData.price = Number(productData.price) || 0;
     productData.stock = Number(productData.stock) || 0;
     productData.isFeatured = !!productData.isFeatured;
     if (typeof productData.tags === 'string') {
-        productData.tags = (productData.tags as string).split(',').map(tag => tag.trim());
+        productData.tags = (productData.tags as string).split(',').map(tag => tag.trim()).filter(Boolean);
     } else if (!Array.isArray(productData.tags)) {
         productData.tags = [];
     }

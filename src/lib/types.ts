@@ -15,8 +15,8 @@ export interface UserProfile {
     phone?: string;
     address?: Address;
     role: 'customer' | 'admin';
-    createdAt: string;
-    photoURL?: string; // Kept for Google Sign-in display
+    createdAt: any; // Can be a server timestamp
+    photoURL?: string; 
 }
 
 export interface Product {
@@ -38,8 +38,8 @@ export interface CartItem extends Product {
 
 export interface OrderProduct {
     productId: string;
-    name: string; // Denormalized for easier display
-    imageUrl: string; // Denormalized for easier display
+    name: string;
+    imageUrl: string;
     quantity: number;
     price: number; // Price at time of purchase
 }

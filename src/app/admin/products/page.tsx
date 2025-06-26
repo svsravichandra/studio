@@ -15,22 +15,19 @@ import { Dialog, DialogTrigger, DialogContent, DialogHeader, DialogTitle, Dialog
 export default function AdminProductsPage() {
     const [products, setProducts] = useState<Product[]>([]);
     const [isLoading, setIsLoading] = useState(true);
-    const [isPending, startTransition] = useTransition();
     const [isDialogOpen, setIsDialogOpen] = useState(false);
     const [editingProduct, setEditingProduct] = useState<Partial<Product> | null>(null);
 
-    const fetchProducts = () => {
-         startTransition(async () => {
-            setIsLoading(true);
-            try {
-                const fetchedProducts = await getAllProducts();
-                setProducts(fetchedProducts);
-            } catch (error) {
-                console.error("Failed to fetch products:", error);
-            } finally {
-                setIsLoading(false);
-            }
-        });
+    const fetchProducts = async () => {
+        setIsLoading(true);
+        try {
+            const fetchedProducts = await getAllProducts();
+            setProducts(fetchedProducts);
+        } catch (error) {
+            console.error("Failed to fetch products:", error);
+        } finally {
+            setIsLoading(false);
+        }
     }
 
     useEffect(() => {
@@ -47,6 +44,11 @@ export default function AdminProductsPage() {
         setIsDialogOpen(true);
     }
     
+    const onFormSuccess = () => {
+        setIsDialogOpen(false);
+        fetchProducts();
+    }
+
     return (
         <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
             <Card className="bg-card border-border/50">
@@ -85,7 +87,7 @@ export default function AdminProductsPage() {
                                 {products.map((product) => (
                                     <TableRow key={product.id}>
                                         <TableCell>
-                                            <Image src={product.imageUrl} alt={product.name} width={40} height={40} className="rounded-md" data-ai-hint={product.tags?.join(' ')} />
+                                            <Image src={product.imageUrl} alt={product.name} width={40} height={40} className="rounded-md object-cover" data-ai-hint={product.tags?.join(' ')} />
                                         </TableCell>
                                         <TableCell className="font-medium">{product.name}</TableCell>
                                         <TableCell>${product.price.toFixed(2)}</TableCell>
@@ -94,7 +96,7 @@ export default function AdminProductsPage() {
                                             {product.isFeatured && <Badge>Yes</Badge>}
                                         </TableCell>
                                         <TableCell className="text-center">
-                                            <ProductActions product={product} onEdit={handleEditProduct} />
+                                            <ProductActions product={product} onEdit={handleEditProduct} onDeleted={fetchProducts} />
                                         </TableCell>
                                     </TableRow>
                                 ))}
@@ -113,10 +115,7 @@ export default function AdminProductsPage() {
                 </DialogHeader>
                 <ProductForm
                     product={editingProduct}
-                    onSuccess={() => {
-                        setIsDialogOpen(false);
-                        fetchProducts();
-                    }}
+                    onSuccess={onFormSuccess}
                 />
             </DialogContent>
         </Dialog>
