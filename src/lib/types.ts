@@ -21,7 +21,7 @@ export interface Order {
     id: string;
     userId: string; // Keep track of which user this order belongs to
     date: string;
-    status: 'Processing' | 'Shipped' | 'Delivered' | 'Cancelled';
+    status: 'Processing' | 'Shipped' | 'Delivered' | 'Cancelled' | 'Returned' | 'Refunded';
     total: number;
     items: OrderItem[];
 }

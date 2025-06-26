@@ -47,11 +47,16 @@ export default function OrdersPage() {
     fetchOrders();
   }, [user]);
 
-  const getStatusVariant = (status: string) => {
-    switch (status.toLowerCase()) {
-      case 'shipped': return 'default';
-      case 'delivered': return 'secondary';
-      case 'processing': return 'outline';
+  const getStatusVariant = (status: Order['status']) => {
+    switch (status) {
+      case 'Shipped': return 'default';
+      case 'Delivered': return 'secondary';
+      case 'Processing': return 'outline';
+      case 'Cancelled':
+      case 'Returned':
+        return 'destructive';
+      case 'Refunded':
+        return 'secondary';
       default: return 'outline';
     }
   }

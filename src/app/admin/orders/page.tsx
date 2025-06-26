@@ -38,12 +38,16 @@ export default function AdminOrdersPage() {
         return orders.filter(order => order.status.toLowerCase() === statusFilter.toLowerCase());
     }, [orders, statusFilter]);
 
-    const getStatusVariant = (status: string) => {
-        switch (status.toLowerCase()) {
-            case 'shipped': return 'default';
-            case 'delivered': return 'secondary';
-            case 'processing': return 'outline';
-            case 'cancelled': return 'destructive';
+    const getStatusVariant = (status: Order['status']) => {
+        switch (status) {
+            case 'Shipped': return 'default';
+            case 'Delivered': return 'secondary';
+            case 'Processing': return 'outline';
+            case 'Cancelled':
+            case 'Returned':
+                 return 'destructive';
+            case 'Refunded':
+                return 'secondary';
             default: return 'outline';
         }
     };
@@ -56,12 +60,14 @@ export default function AdminOrdersPage() {
             </CardHeader>
             <CardContent>
                 <Tabs value={statusFilter} onValueChange={setStatusFilter} className="mb-4">
-                    <TabsList>
+                    <TabsList className="flex-wrap h-auto">
                         <TabsTrigger value="all">All</TabsTrigger>
                         <TabsTrigger value="Processing">Processing</TabsTrigger>
                         <TabsTrigger value="Shipped">Shipped</TabsTrigger>
                         <TabsTrigger value="Delivered">Delivered</TabsTrigger>
                         <TabsTrigger value="Cancelled">Cancelled</TabsTrigger>
+                        <TabsTrigger value="Returned">Returned</TabsTrigger>
+                        <TabsTrigger value="Refunded">Refunded</TabsTrigger>
                     </TabsList>
                 </Tabs>
 
