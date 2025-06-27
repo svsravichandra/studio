@@ -1,3 +1,4 @@
+
 'use client';
 
 import { Button } from "@/components/ui/button";
@@ -13,7 +14,7 @@ import { useToast } from "@/hooks/use-toast";
 import type { UserProfile } from "@/lib/types";
 import { useEffect } from "react";
 
-type ProfileFormData = Omit<UserProfile, 'uid' | 'role' | 'createdAt' | 'email' | 'photoURL'>;
+type ProfileFormData = Omit<UserProfile, 'uid' | 'role' | 'createdAt' | 'email'>;
 
 export default function ProfilePage() {
     const { user, userProfile, loading } = useAuth();
@@ -24,7 +25,7 @@ export default function ProfilePage() {
     useEffect(() => {
         if(userProfile) {
             reset({
-                displayName: userProfile.displayName || '',
+                name: userProfile.name || '',
                 phone: userProfile.phone || '',
                 address: {
                     line1: userProfile.address?.line1 || '',
@@ -86,8 +87,8 @@ export default function ProfilePage() {
                 <div className="space-y-4">
                   <div className="grid md:grid-cols-2 gap-4">
                     <div className="space-y-2">
-                        <Label htmlFor="displayName">Full Name</Label>
-                        <Input id="displayName" {...register("displayName")} className="bg-background" />
+                        <Label htmlFor="name">Full Name</Label>
+                        <Input id="name" {...register("name")} className="bg-background" />
                     </div>
                     <div className="space-y-2">
                         <Label htmlFor="email">Email Address</Label>

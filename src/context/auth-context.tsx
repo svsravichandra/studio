@@ -54,9 +54,8 @@ const getFirebaseAuthErrorMessage = (error: AuthError): string => {
 
 const mapFirebaseUserToProfile = (firebaseUser: User, existingData?: any): Omit<UserProfile, 'uid' | 'createdAt'> => {
     return {
-        displayName: firebaseUser.displayName || existingData?.displayName || 'New User',
+        name: firebaseUser.displayName || existingData?.name || 'New User',
         email: firebaseUser.email || '',
-        photoURL: firebaseUser.photoURL || '',
         role: existingData?.role || 'customer', // Default role
         phone: existingData?.phone || '',
         address: existingData?.address || {},

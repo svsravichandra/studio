@@ -1,8 +1,9 @@
+
 'use server';
 
 import { db } from '@/lib/firebase';
 import { Product, Order, UserProfile, Address } from '@/lib/types';
-import { collection, collectionGroup, getDocs, doc, updateDoc, addDoc, deleteDoc, setDoc, Timestamp } from 'firebase/firestore';
+import { collection, collectionGroup, getDocs, doc, updateDoc, addDoc, deleteDoc, setDoc, Timestamp, query, where, documentId } from 'firebase/firestore';
 import { revalidatePath } from 'next/cache';
 
 // Orders
@@ -10,21 +11,28 @@ export async function getAllOrders(): Promise<(Order & { user: { id: string, nam
     if (!db) throw new Error("DB connection failed");
     
     const ordersSnapshot = await getDocs(collectionGroup(db, 'orders'));
-    const userIds = new Set(ordersSnapshot.docs.map(d => d.ref.parent.parent!.id));
+    const userIds = [...new Set(ordersSnapshot.docs.map(d => d.ref.parent.parent!.id))];
     
     const users: Record<string, {name: string, email: string}> = {};
-    if (userIds.size > 0) {
-        // Since we cannot query a collection by a list of document IDs directly that exceeds 30,
-        // we fetch all users and filter them in memory. 
-        // For larger scale applications, this should be optimized.
-        const usersSnapshot = await getDocs(collection(db, 'users'));
-        usersSnapshot.forEach(doc => {
-            if (userIds.has(doc.id)) {
+    if (userIds.length > 0) {
+        const usersRef = collection(db, 'users');
+        // Firestore 'in' queries are limited to 30 elements, so we batch them.
+        const promises = [];
+        for (let i = 0; i < userIds.length; i += 30) {
+            const chunk = userIds.slice(i, i + 30);
+            const q = query(usersRef, where(documentId(), 'in', chunk));
+            promises.push(getDocs(q));
+        }
+
+        const userSnapshots = await Promise.all(promises);
+        userSnapshots.forEach(snapshot => {
+            snapshot.forEach(doc => {
+                const data = doc.data();
                 users[doc.id] = {
-                    name: doc.data().displayName || 'N/A',
-                    email: doc.data().email || 'N/A'
+                    name: data.name || 'N/A',
+                    email: data.email || 'N/A'
                 };
-            }
+            });
         });
     }
 
@@ -117,11 +125,10 @@ export async function getAllUsers(): Promise<UserProfile[]> {
         const createdAtTimestamp = data.createdAt as Timestamp;
         return {
             uid: doc.id,
-            displayName: data.displayName || '',
+            name: data.name || '',
             email: data.email || '',
             phone: data.phone || '',
             address: data.address || {},
-            photoURL: data.photoURL || '',
             role: data.role || 'customer',
             createdAt: createdAtTimestamp ? createdAtTimestamp.toDate().toISOString() : new Date().toISOString(),
         };

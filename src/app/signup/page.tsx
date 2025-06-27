@@ -25,7 +25,7 @@ const GoogleIcon = (props: React.SVGProps<SVGSVGElement>) => (
   );
 
 const formSchema = z.object({
-    fullName: z.string().min(1, { message: "Full name is required." }),
+    name: z.string().min(1, { message: "Full name is required." }),
     email: z.string().email({ message: "Please enter a valid email." }),
     password: z.string().min(6, { message: "Password must be at least 6 characters." }),
     confirmPassword: z.string()
@@ -42,7 +42,7 @@ export default function SignUpPage() {
   const form = useForm<z.infer<typeof formSchema>>({
     resolver: zodResolver(formSchema),
     defaultValues: {
-      fullName: "",
+      name: "",
       email: "",
       password: "",
       confirmPassword: "",
@@ -52,7 +52,7 @@ export default function SignUpPage() {
   async function onSubmit(values: z.infer<typeof formSchema>) {
     setIsLoading(true);
     try {
-        await signUpWithEmail(values.fullName, values.email, values.password);
+        await signUpWithEmail(values.name, values.email, values.password);
         // The context handles redirection on success.
     } catch (error: any) {
         toast({
@@ -77,7 +77,7 @@ export default function SignUpPage() {
             <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
                 <FormField
                     control={form.control}
-                    name="fullName"
+                    name="name"
                     render={({ field }) => (
                     <FormItem>
                         <FormLabel>Full Name</FormLabel>

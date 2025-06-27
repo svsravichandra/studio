@@ -10,13 +10,12 @@ export interface Address {
 
 export interface UserProfile {
     uid: string;
-    displayName: string;
+    name: string;
     email: string;
     phone?: string;
     address?: Address;
     role: 'customer' | 'admin';
     createdAt: any; // Can be a server timestamp
-    photoURL?: string; 
 }
 
 export interface Product {

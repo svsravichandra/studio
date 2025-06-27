@@ -1,3 +1,4 @@
+
 'use client';
 import { useEffect, useState, useTransition } from 'react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
@@ -56,10 +57,9 @@ export default function AdminUsersPage() {
                                     <TableCell>
                                         <div className="flex items-center gap-3">
                                             <Avatar>
-                                                <AvatarImage src={user.photoURL} alt={user.displayName} />
-                                                <AvatarFallback>{user.displayName?.charAt(0).toUpperCase()}</AvatarFallback>
+                                                <AvatarFallback>{user.name?.charAt(0).toUpperCase()}</AvatarFallback>
                                             </Avatar>
-                                            <span className="font-medium">{user.displayName}</span>
+                                            <span className="font-medium">{user.name}</span>
                                         </div>
                                     </TableCell>
                                     <TableCell>{user.email}</TableCell>
