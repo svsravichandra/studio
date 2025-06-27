@@ -1,3 +1,4 @@
+
 'use client';
 
 import { Button } from "@/components/ui/button";
@@ -86,7 +87,7 @@ export default function CheckoutPage() {
      if (userProfile) {
         reset({
             shippingAddress: {
-                name: userProfile.displayName || "",
+                name: userProfile.name || "",
                 line1: userProfile.address?.line1 || "",
                 line2: userProfile.address?.line2 || "",
                 city: userProfile.address?.city || "",
