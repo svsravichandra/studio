@@ -14,11 +14,11 @@ import { MoreHorizontal, Truck, Undo, PackageCheck, Ban } from "lucide-react";
 import { type Order } from "@/lib/types";
 import { updateOrderStatus } from "@/app/admin/actions";
 import { useToast } from "@/hooks/use-toast";
-import { useState, useTransition } from "react";
+import { useTransition } from "react";
 
 type OrderWithUser = Order & { user: { id: string; name: string; email: string } };
 
-export function OrderActions({ order }: { order: OrderWithUser }) {
+export function OrderActions({ order, onUpdate }: { order: OrderWithUser, onUpdate: () => void }) {
   const { toast } = useToast();
   const [isPending, startTransition] = useTransition();
 
@@ -28,6 +28,7 @@ export function OrderActions({ order }: { order: OrderWithUser }) {
         const result = await updateOrderStatus({ orderId: order.id, status });
         if (result.success) {
           toast({ title: "Success", description: result.message });
+          onUpdate();
         } else {
            throw new Error("Failed to update status");
         }

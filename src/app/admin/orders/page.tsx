@@ -1,5 +1,5 @@
 'use client';
-import { useEffect, useState, useMemo, useTransition } from 'react';
+import { useEffect, useState, useMemo, useTransition, useCallback } from 'react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Badge } from "@/components/ui/badge";
@@ -15,9 +15,9 @@ export default function AdminOrdersPage() {
     const [orders, setOrders] = useState<OrderWithUser[]>([]);
     const [statusFilter, setStatusFilter] = useState<string>('all');
     const [isLoading, setIsLoading] = useState(true);
-    const [isPending, startTransition] = useTransition();
+    const [, startTransition] = useTransition();
 
-    useEffect(() => {
+    const fetchOrders = useCallback(() => {
         startTransition(async () => {
             setIsLoading(true);
             try {
@@ -30,6 +30,10 @@ export default function AdminOrdersPage() {
             }
         });
     }, []);
+
+    useEffect(() => {
+        fetchOrders();
+    }, [fetchOrders]);
 
     const filteredOrders = useMemo(() => {
         if (statusFilter === 'all') {
@@ -99,7 +103,7 @@ export default function AdminOrdersPage() {
                                     </TableCell>
                                     <TableCell className="text-right">${order.total.toFixed(2)}</TableCell>
                                     <TableCell className="text-center">
-                                        <OrderActions order={order} />
+                                        <OrderActions order={order} onUpdate={fetchOrders} />
                                     </TableCell>
                                 </TableRow>
                             ))}
