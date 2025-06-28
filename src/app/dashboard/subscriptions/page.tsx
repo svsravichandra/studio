@@ -35,18 +35,33 @@ import { getAllProducts as fetchAllStoreProducts } from '@/app/admin/actions';
 
 type SubscriptionDisplayProduct = Product & { quantity: number };
 
-async function getSubscriptionProducts(items: SubscriptionProduct[]): Promise<SubscriptionDisplayProduct[]> {
-    if (!db || items.length === 0) return [];
+async function getSubscriptionProducts(items: any[]): Promise<SubscriptionDisplayProduct[]> {
+    if (!db || !items || items.length === 0) return [];
     
-    const productIds = items.map(item => item.productId);
-    if (productIds.length === 0) return [];
+    const productQuantities: { [key: string]: number } = {};
+    const productIds: string[] = [];
+
+    items.forEach(item => {
+        if (typeof item === 'string') {
+            productIds.push(item);
+            // For old string[] format, assume quantity is 1 and handle duplicates by counting
+            productQuantities[item] = (productQuantities[item] || 0) + 1;
+        } else if (item && typeof item.productId === 'string' && typeof item.quantity === 'number') {
+            productIds.push(item.productId);
+            productQuantities[item.productId] = item.quantity;
+        }
+    });
+
+    const uniqueProductIds = [...new Set(productIds)];
+
+    if (uniqueProductIds.length === 0) return [];
 
     try {
         const productsRef = collection(db, 'products');
-        // Firestore 'in' queries are limited to 30 items. If the subscription can have more, this needs batching.
+        // Firestore 'in' queries are limited to 30 items. Batching for scalability.
         const productIdsInChunks: string[][] = [];
-        for (let i = 0; i < productIds.length; i += 30) {
-            productIdsInChunks.push(productIds.slice(i, i + 30));
+        for (let i = 0; i < uniqueProductIds.length; i += 30) {
+            productIdsInChunks.push(uniqueProductIds.slice(i, i + 30));
         }
         
         const productPromises = productIdsInChunks.map(chunk => {
@@ -62,12 +77,11 @@ async function getSubscriptionProducts(items: SubscriptionProduct[]): Promise<Su
             });
         });
 
-        // Combine fetched products with quantities from subscription items
-        return productIds.map(id => {
+        // Combine fetched products with quantities
+        return uniqueProductIds.map(id => {
             const product = fetchedProducts.find(p => p.id === id);
-            const item = items.find(i => i.productId === id);
-            if (product && item) {
-                return { ...product, quantity: item.quantity };
+            if (product) {
+                return { ...product, quantity: productQuantities[id] || 1 };
             }
             return null;
         }).filter(Boolean) as SubscriptionDisplayProduct[];
