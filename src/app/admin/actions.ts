@@ -3,16 +3,26 @@
 
 import { db } from '@/lib/firebase';
 import { Product, Order, UserProfile, Address } from '@/lib/types';
-import { collection, collectionGroup, getDocs, doc, updateDoc, addDoc, deleteDoc, setDoc, Timestamp, query, where, documentId } from 'firebase/firestore';
+import { collection, collectionGroup, getDocs, doc, updateDoc, addDoc, deleteDoc, setDoc, Timestamp, query, where, documentId, orderBy, writeBatch } from 'firebase/firestore';
 import { revalidatePath } from 'next/cache';
 
 // Orders
 export async function getAllOrders(): Promise<(Order & { user: { id: string, name: string, email: string } })[]> {
     if (!db) throw new Error("DB connection failed");
     
-    const ordersSnapshot = await getDocs(collectionGroup(db, 'orders'));
-    const userIds = [...new Set(ordersSnapshot.docs.map(d => d.ref.parent.parent!.id))];
+    // 1. Fetch all orders from the root collection
+    const ordersRef = collection(db, 'orders');
+    const ordersQuery = query(ordersRef, orderBy('createdAt', 'desc'));
+    const ordersSnapshot = await getDocs(ordersQuery);
+
+    if (ordersSnapshot.empty) {
+        return [];
+    }
     
+    // 2. Collect all unique user IDs from the orders
+    const userIds = [...new Set(ordersSnapshot.docs.map(d => d.data().userId))];
+    
+    // 3. Fetch user data for these user IDs in batches
     const users: Record<string, {name: string, email: string}> = {};
     if (userIds.length > 0) {
         const usersRef = collection(db, 'users');
@@ -36,9 +46,10 @@ export async function getAllOrders(): Promise<(Order & { user: { id: string, nam
         });
     }
 
+    // 4. Combine order data with user data
     const orders = ordersSnapshot.docs.map(docSnapshot => {
         const data = docSnapshot.data();
-        const userId = docSnapshot.ref.parent.parent!.id;
+        const userId = data.userId;
         const createdAtTimestamp = data.createdAt as Timestamp;
         return {
             id: docSnapshot.id,
@@ -56,13 +67,13 @@ export async function getAllOrders(): Promise<(Order & { user: { id: string, nam
         } as Order & { user: { id: string, name: string, email: string } };
     });
 
-    return orders.sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
+    return orders;
 }
 
 
-export async function updateOrderStatus({ userId, orderId, status }: { userId: string, orderId: string, status: Order['status'] }) {
+export async function updateOrderStatus({ orderId, status }: { orderId: string, status: Order['status'] }) {
     if (!db) throw new Error("DB connection failed");
-    const orderRef = doc(db, `users/${userId}/orders`, orderId);
+    const orderRef = doc(db, 'orders', orderId);
     await updateDoc(orderRef, { status });
     revalidatePath('/admin/orders');
     return { success: true, message: `Order ${orderId} updated to ${status}` };
@@ -89,7 +100,6 @@ export async function upsertProduct(product: Partial<Product>) {
     } else if (!Array.isArray(productData.tags)) {
         productData.tags = [];
     }
-
 
     if (product.id) {
         const productRef = doc(db, 'products', product.id);

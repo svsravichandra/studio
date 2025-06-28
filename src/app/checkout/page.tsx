@@ -14,10 +14,9 @@ import { db } from "@/lib/firebase";
 import { collection, addDoc, serverTimestamp } from "firebase/firestore";
 import { useToast } from "@/hooks/use-toast";
 import { Loader2 } from "lucide-react";
-import { useForm, Controller } from 'react-hook-form';
+import { useForm } from "react-hook-form";
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from "zod";
-import type { Address } from "@/lib/types";
 
 const addressSchema = z.object({
   name: z.string().min(1, "Full name is required"),
@@ -131,7 +130,7 @@ export default function CheckoutPage() {
     const { name, ...shippingAddress } = data.shippingAddress;
 
     try {
-        const ordersRef = collection(db, `users/${user.uid}/orders`);
+        const ordersRef = collection(db, 'orders');
         await addDoc(ordersRef, {
             userId: user.uid,
             createdAt: serverTimestamp(),

@@ -37,8 +37,8 @@ export interface CartItem extends Product {
 
 export interface OrderProduct {
     productId: string;
-    name: string;
-    imageUrl: string;
+    name: string; // Denormalized for display
+    imageUrl: string; // Denormalized for display
     quantity: number;
     price: number; // Price at time of purchase
 }

@@ -1,3 +1,4 @@
+
 'use client';
 
 import {
@@ -24,7 +25,7 @@ export function OrderActions({ order }: { order: OrderWithUser }) {
   const handleStatusChange = (status: Order['status']) => {
     startTransition(async () => {
       try {
-        const result = await updateOrderStatus({ userId: order.userId, orderId: order.id, status });
+        const result = await updateOrderStatus({ orderId: order.id, status });
         if (result.success) {
           toast({ title: "Success", description: result.message });
         } else {

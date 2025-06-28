@@ -42,7 +42,7 @@ export default function SubscriptionsPage() {
                 return;
             };
             setIsLoading(true);
-            const subRef = doc(db, `users/${user.uid}/subscriptions`, 'active_subscription');
+            const subRef = doc(db, 'subscriptions', user.uid);
             try {
                 const docSnap = await getDoc(subRef);
                 if (docSnap.exists()) {
@@ -84,10 +84,10 @@ export default function SubscriptionsPage() {
         };
 
         try {
-            const subRef = doc(db, `users/${user.uid}/subscriptions`, 'active_subscription');
+            const subRef = doc(db, 'subscriptions', user.uid);
             await setDoc(subRef, defaultSubscription);
             
-            const subData = { id: 'active_subscription', ...defaultSubscription } as Subscription;
+            const subData = { id: user.uid, ...defaultSubscription } as Subscription;
             setSubscription(subData);
             const productDetails = await getSubscriptionProducts(subData.items);
             setProducts(productDetails);

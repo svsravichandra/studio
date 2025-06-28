@@ -1,3 +1,4 @@
+
 'use client';
 
 import { Button } from "@/components/ui/button";
@@ -8,7 +9,7 @@ import { type Order } from "@/lib/types";
 import { Truck, Repeat, RefreshCcw, Loader2 } from "lucide-react";
 import { useAuth } from "@/context/auth-context";
 import { useEffect, useState } from "react";
-import { collection, getDocs, orderBy, query, Timestamp } from "firebase/firestore";
+import { collection, getDocs, orderBy, query, Timestamp, where } from "firebase/firestore";
 import { db } from "@/lib/firebase";
 
 export default function OrdersPage() {
@@ -23,8 +24,8 @@ export default function OrdersPage() {
         return;
       }
       try {
-        const ordersRef = collection(db, `users/${user.uid}/orders`);
-        const q = query(ordersRef, orderBy('createdAt', 'desc'));
+        const ordersRef = collection(db, 'orders');
+        const q = query(ordersRef, where('userId', '==', user.uid), orderBy('createdAt', 'desc'));
         const querySnapshot = await getDocs(q);
         const fetchedOrders: Order[] = [];
         querySnapshot.forEach(doc => {
@@ -33,10 +34,7 @@ export default function OrdersPage() {
             fetchedOrders.push({
                 id: doc.id,
                 createdAt: createdAtTimestamp ? createdAtTimestamp.toDate().toISOString() : new Date().toISOString(),
-                status: data.status,
-                total: data.total,
-                items: data.items,
-                shippingAddress: data.shippingAddress
+                ...data
             } as Order);
         });
         setOrders(fetchedOrders);
