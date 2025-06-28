@@ -20,15 +20,9 @@ const formSchema = z.object({
   id: z.string().optional(),
   name: z.string().min(1, "Name is required"),
   description: z.string().min(1, "Description is required"),
-  price: z.preprocess(
-    (a) => parseFloat(z.string().parse(a)),
-    z.number().positive("Price must be positive")
-  ),
+  price: z.coerce.number().positive({ message: "Price must be a positive number." }),
   imageUrl: z.string().url("Must be a valid URL"),
-  stock: z.preprocess(
-    (a) => parseInt(z.string().parse(a), 10),
-    z.number().int().nonnegative("Stock cannot be negative")
-  ),
+  stock: z.coerce.number().int().nonnegative({ message: "Stock must be a whole number and cannot be negative." }),
   gritLevel: z.enum(['None', 'Light', 'Medium', 'Heavy']),
   scentProfile: z.string().min(1, "Scent profile is required"),
   tags: z.string().min(1, "Tags are required (comma-separated)"),

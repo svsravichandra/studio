@@ -1,3 +1,4 @@
+
 'use server';
 
 import { db } from '@/lib/firebase';
@@ -49,7 +50,7 @@ export async function getAllOrders(): Promise<(Order & { user: { id: string, nam
     const orders = ordersSnapshot.docs.map(docSnapshot => {
         const data = docSnapshot.data();
         const userId = data.userId;
-        const createdAtTimestamp = data.createdAt;
+        const createdAtTimestamp = data.createdAt as Timestamp;
         return {
             id: docSnapshot.id,
             userId,
@@ -90,27 +91,28 @@ export async function getAllProducts(): Promise<Product[]> {
 
 export async function upsertProduct(product: Partial<Product>) {
     if (!db) throw new Error("DB connection failed");
+    
     const productData: any = { ...product };
 
-    // Ensure correct types before sending to Firestore
-    productData.price = Number(productData.price) || 0;
-    productData.stock = Number(productData.stock) || 0;
-    productData.isFeatured = !!productData.isFeatured;
+    // Tags come from the form as a comma-separated string
     if (typeof productData.tags === 'string') {
         productData.tags = (productData.tags as string).split(',').map(tag => tag.trim()).filter(Boolean);
     } else if (!Array.isArray(productData.tags)) {
         productData.tags = [];
     }
 
-    if (product.id) {
-        const productRef = doc(db, 'products', product.id);
-        await setDoc(productRef, productData, { merge: true });
+    // Destructure to remove id from the data being saved to the document
+    const { id, ...dataToSave } = productData;
+
+    if (id) {
+        const productRef = doc(db, 'products', id);
+        await setDoc(productRef, dataToSave, { merge: true });
         revalidatePath('/admin/products');
         revalidatePath('/products');
         revalidatePath('/');
-        return { success: true, message: `Product ${product.id} updated.` };
+        return { success: true, message: `Product ${id} updated.` };
     } else {
-        const newDocRef = await addDoc(collection(db, 'products'), productData);
+        const newDocRef = await addDoc(collection(db, 'products'), dataToSave);
         revalidatePath('/admin/products');
         revalidatePath('/products');
         revalidatePath('/');
@@ -133,7 +135,7 @@ export async function getAllUsers(): Promise<UserProfile[]> {
     const usersSnapshot = await getDocs(collection(db, 'users'));
     return usersSnapshot.docs.map(doc => {
         const data = doc.data();
-        const createdAtTimestamp = data.createdAt;
+        const createdAtTimestamp = data.createdAt as Timestamp;
         return {
             uid: doc.id,
             name: data.name || '',
