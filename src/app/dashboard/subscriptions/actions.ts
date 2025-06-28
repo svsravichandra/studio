@@ -1,3 +1,4 @@
+
 'use server';
 
 import { db } from '@/lib/firebase';
@@ -19,6 +20,14 @@ export async function updateSubscriptionFrequency({ userId, frequency }: { userI
     await updateDoc(subRef, { frequency });
     revalidatePath('/dashboard/subscriptions');
     return { success: true, message: `Subscription frequency updated to ${frequency}.` };
+}
+
+export async function updateSubscriptionItems({ userId, items }: { userId: string; items: string[] }) {
+    if (!db) throw new Error("DB connection failed");
+    const subRef = doc(db, 'subscriptions', userId);
+    await updateDoc(subRef, { items });
+    revalidatePath('/dashboard/subscriptions');
+    return { success: true, message: `Subscription items updated.` };
 }
 
 export async function cancelSubscription({ userId }: { userId: string }) {
