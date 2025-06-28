@@ -1,4 +1,3 @@
-
 'use client';
 
 import { Button } from "@/components/ui/button";
@@ -30,7 +29,7 @@ export default function OrdersPage() {
         
         const fetchedOrders = querySnapshot.docs.map(doc => {
             const data = doc.data();
-            const createdAtTimestamp = data.createdAt as Timestamp;
+            const createdAtTimestamp = data.createdAt;
             return {
                 id: doc.id,
                 userId: data.userId,
@@ -39,7 +38,9 @@ export default function OrdersPage() {
                 status: data.status,
                 shippingAddress: data.shippingAddress,
                 paymentIntentId: data.paymentIntentId,
-                createdAt: createdAtTimestamp ? createdAtTimestamp.toDate().toISOString() : new Date().toISOString(),
+                createdAt: (createdAtTimestamp && typeof createdAtTimestamp.toDate === 'function')
+                  ? createdAtTimestamp.toDate().toISOString()
+                  : new Date().toISOString(),
             } as Order;
         });
 

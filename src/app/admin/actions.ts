@@ -1,4 +1,3 @@
-
 'use server';
 
 import { db } from '@/lib/firebase';
@@ -50,11 +49,13 @@ export async function getAllOrders(): Promise<(Order & { user: { id: string, nam
     const orders = ordersSnapshot.docs.map(docSnapshot => {
         const data = docSnapshot.data();
         const userId = data.userId;
-        const createdAtTimestamp = data.createdAt as Timestamp;
+        const createdAtTimestamp = data.createdAt;
         return {
             id: docSnapshot.id,
             userId,
-            createdAt: createdAtTimestamp ? createdAtTimestamp.toDate().toISOString() : new Date().toISOString(),
+            createdAt: (createdAtTimestamp && typeof createdAtTimestamp.toDate === 'function')
+                ? createdAtTimestamp.toDate().toISOString()
+                : new Date().toISOString(),
             status: data.status,
             total: data.total,
             items: data.items,
@@ -132,7 +133,7 @@ export async function getAllUsers(): Promise<UserProfile[]> {
     const usersSnapshot = await getDocs(collection(db, 'users'));
     return usersSnapshot.docs.map(doc => {
         const data = doc.data();
-        const createdAtTimestamp = data.createdAt as Timestamp;
+        const createdAtTimestamp = data.createdAt;
         return {
             uid: doc.id,
             name: data.name || '',
@@ -140,7 +141,9 @@ export async function getAllUsers(): Promise<UserProfile[]> {
             phone: data.phone || '',
             address: data.address || {},
             role: data.role || 'customer',
-            createdAt: createdAtTimestamp ? createdAtTimestamp.toDate().toISOString() : new Date().toISOString(),
+            createdAt: (createdAtTimestamp && typeof createdAtTimestamp.toDate === 'function')
+                ? createdAtTimestamp.toDate().toISOString()
+                : new Date().toISOString(),
         };
     });
 }
