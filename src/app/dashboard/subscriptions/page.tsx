@@ -4,7 +4,7 @@
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import { type Product, type Subscription } from "@/lib/types";
+import { type Product, type Subscription, type SubscriptionProduct } from "@/lib/types";
 import Image from "next/image";
 import { Separator } from "@/components/ui/separator";
 import { useAuth } from "@/context/auth-context";
@@ -33,9 +33,14 @@ import { Dialog, DialogTrigger } from '@/components/ui/dialog';
 import { ManageSubscriptionProducts } from './manage-products';
 import { getAllProducts as fetchAllStoreProducts } from '@/app/admin/actions';
 
+type SubscriptionDisplayProduct = Product & { quantity: number };
 
-async function getSubscriptionProducts(productIds: string[]): Promise<Product[]> {
-    if (!db || productIds.length === 0) return [];
+async function getSubscriptionProducts(items: SubscriptionProduct[]): Promise<SubscriptionDisplayProduct[]> {
+    if (!db || items.length === 0) return [];
+    
+    const productIds = items.map(item => item.productId);
+    if (productIds.length === 0) return [];
+
     try {
         const productsRef = collection(db, 'products');
         // Firestore 'in' queries are limited to 30 items. If the subscription can have more, this needs batching.
@@ -50,15 +55,22 @@ async function getSubscriptionProducts(productIds: string[]): Promise<Product[]>
         });
 
         const productSnapshots = await Promise.all(productPromises);
-        const products: Product[] = [];
+        const fetchedProducts: Product[] = [];
         productSnapshots.forEach(snapshot => {
             snapshot.docs.forEach(doc => {
-                 products.push({ id: doc.id, ...doc.data() } as Product);
+                 fetchedProducts.push({ id: doc.id, ...doc.data() } as Product);
             });
         });
 
-        // Preserve original order from subscription
-        return productIds.map(id => products.find(p => p.id === id)).filter(Boolean) as Product[];
+        // Combine fetched products with quantities from subscription items
+        return productIds.map(id => {
+            const product = fetchedProducts.find(p => p.id === id);
+            const item = items.find(i => i.productId === id);
+            if (product && item) {
+                return { ...product, quantity: item.quantity };
+            }
+            return null;
+        }).filter(Boolean) as SubscriptionDisplayProduct[];
 
     } catch (error) {
         console.error("Error fetching subscription products:", error);
@@ -66,11 +78,12 @@ async function getSubscriptionProducts(productIds: string[]): Promise<Product[]>
     }
 }
 
+
 export default function SubscriptionsPage() {
     const { user } = useAuth();
     const { toast } = useToast();
     const [subscription, setSubscription] = useState<Subscription | null>(null);
-    const [products, setProducts] = useState<Product[]>([]);
+    const [products, setProducts] = useState<SubscriptionDisplayProduct[]>([]);
     const [allProducts, setAllProducts] = useState<Product[]>([]);
     const [isLoading, setIsLoading] = useState(true);
     const [isCreating, setIsCreating] = useState(false);
@@ -99,6 +112,8 @@ export default function SubscriptionsPage() {
                 if (subData.items && subData.items.length > 0) {
                   const productDetails = await getSubscriptionProducts(subData.items);
                   setProducts(productDetails);
+                } else {
+                  setProducts([]);
                 }
             } else {
                 setSubscription(null);
@@ -126,14 +141,18 @@ export default function SubscriptionsPage() {
         const nextDeliveryDate = new Date();
         nextDeliveryDate.setMonth(nextDeliveryDate.getMonth() + 1);
 
-        const defaultProductIds = ['timber-trail', 'whiskey-oak', 'arctic-steel'];
+        const defaultItems: SubscriptionProduct[] = [
+            { productId: 'timber-trail', quantity: 1 },
+            { productId: 'whiskey-oak', quantity: 1 },
+            { productId: 'arctic-steel', quantity: 1 },
+        ];
 
         const defaultSubscription: Omit<Subscription, 'id'> = {
             userId: user.uid,
             active: true,
             frequency: 'monthly',
             nextDelivery: nextDeliveryDate.toISOString(),
-            items: defaultProductIds,
+            items: defaultItems,
             createdAt: serverTimestamp(),
         };
 
@@ -261,8 +280,8 @@ export default function SubscriptionsPage() {
                         {products.length > 0 ? products.map(item => (
                             <div key={item.id} className="flex items-center gap-3">
                                 <Image src={item.imageUrl} alt={item.name} width={50} height={50} className="rounded-md object-cover" data-ai-hint={item.tags.join(' ')}/>
-                                <p className="flex-grow">{item.name}</p>
-                                <p className="text-muted-foreground">${item.price.toFixed(2)}</p>
+                                <p className="flex-grow">{item.name} <span className="text-sm text-muted-foreground">x{item.quantity}</span></p>
+                                <p className="text-muted-foreground">${(item.price * item.quantity).toFixed(2)}</p>
                             </div>
                         )) : <p className="text-sm text-muted-foreground">No products in your subscription.</p>}
                     </div>
@@ -325,7 +344,7 @@ export default function SubscriptionsPage() {
         {subscription && allProducts.length > 0 && (
             <ManageSubscriptionProducts
                 allProducts={allProducts}
-                currentProductIds={subscription.items}
+                currentItems={subscription.items}
                 onSuccess={handleManageSuccess}
                 onClose={() => setIsManageOpen(false)}
             />

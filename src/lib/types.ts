@@ -54,10 +54,15 @@ export interface Order {
     createdAt: any; // Can be a server timestamp
 }
 
+export interface SubscriptionProduct {
+    productId: string;
+    quantity: number;
+}
+
 export interface Subscription {
     id: string;
     userId: string;
-    items: string[]; // Array of product IDs
+    items: SubscriptionProduct[]; // Array of product IDs and quantities
     frequency: 'monthly' | 'bi-monthly';
     active: boolean;
     stripeSubscriptionId?: string;

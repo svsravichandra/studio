@@ -1,55 +1,75 @@
 
 'use client';
 
-import { useState, useTransition } from 'react';
+import { useState, useTransition, useMemo } from 'react';
 import { Button } from '@/components/ui/button';
-import { Checkbox } from '@/components/ui/checkbox';
 import { DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from '@/components/ui/dialog';
 import { ScrollArea } from '@/components/ui/scroll-area';
-import type { Product } from '@/lib/types';
+import type { Product, SubscriptionProduct } from '@/lib/types';
 import { updateSubscriptionItems } from './actions';
 import { useAuth } from '@/context/auth-context';
 import { useToast } from '@/hooks/use-toast';
-import { Loader2 } from 'lucide-react';
+import { Loader2, Plus, Minus, Package } from 'lucide-react';
 import Image from 'next/image';
+import { Input } from '@/components/ui/input';
 
 interface ManageSubscriptionProductsProps {
   allProducts: Product[];
-  currentProductIds: string[];
+  currentItems: SubscriptionProduct[];
   onSuccess: () => void;
   onClose: () => void;
 }
 
-export function ManageSubscriptionProducts({ allProducts, currentProductIds, onSuccess, onClose }: ManageSubscriptionProductsProps) {
+export function ManageSubscriptionProducts({ allProducts, currentItems, onSuccess, onClose }: ManageSubscriptionProductsProps) {
   const { user } = useAuth();
   const { toast } = useToast();
-  const [selectedIds, setSelectedIds] = useState<string[]>(currentProductIds);
+  const [selectedItems, setSelectedItems] = useState<SubscriptionProduct[]>(currentItems);
   const [isPending, startTransition] = useTransition();
-  const subscriptionProductCount = 3; // The Gritbox contains 3 bars
+  const subscriptionProductCount = 3;
 
-  const handleCheckboxChange = (productId: string, checked: boolean) => {
-    setSelectedIds(prev => {
-      if (checked) {
-        if (prev.length >= subscriptionProductCount) {
-          toast({
-            title: `You can only select ${subscriptionProductCount} products.`,
-            variant: "destructive"
-          });
-          return prev;
+  const totalQuantity = useMemo(() => {
+    return selectedItems.reduce((sum, item) => sum + item.quantity, 0);
+  }, [selectedItems]);
+
+  const handleQuantityChange = (productId: string, change: number) => {
+    if (totalQuantity + change > subscriptionProductCount && change > 0) {
+      toast({
+        title: `Your Gritbox is full.`,
+        description: `You can only have ${subscriptionProductCount} bars in your subscription.`,
+        variant: "destructive"
+      });
+      return;
+    }
+
+    setSelectedItems(prev => {
+      const existingItem = prev.find(item => item.productId === productId);
+      let newItems;
+
+      if (existingItem) {
+        const newQuantity = existingItem.quantity + change;
+        if (newQuantity > 0) {
+          newItems = prev.map(item =>
+            item.productId === productId ? { ...item, quantity: newQuantity } : item
+          );
+        } else {
+          newItems = prev.filter(item => item.productId !== productId);
         }
-        return [...prev, productId];
+      } else if (change > 0) {
+        newItems = [...prev, { productId, quantity: change }];
       } else {
-        return prev.filter(id => id !== productId);
+        return prev; // No change
       }
+      
+      return newItems;
     });
   };
 
   const handleSave = () => {
     if (!user) return;
-    if (selectedIds.length !== subscriptionProductCount) {
+    if (totalQuantity !== subscriptionProductCount) {
        toast({
-            title: `You must select exactly ${subscriptionProductCount} products.`,
-            description: `You have selected ${selectedIds.length}.`,
+            title: `Check your quantities.`,
+            description: `Your Gritbox must contain exactly ${subscriptionProductCount} bars. You currently have ${totalQuantity}.`,
             variant: "destructive"
         });
         return;
@@ -57,7 +77,7 @@ export function ManageSubscriptionProducts({ allProducts, currentProductIds, onS
 
     startTransition(async () => {
       try {
-        const result = await updateSubscriptionItems({ userId: user.uid, items: selectedIds });
+        const result = await updateSubscriptionItems({ userId: user.uid, items: selectedItems });
         if (result.success) {
           toast({ title: 'Success', description: 'Your Gritbox has been updated.' });
           onSuccess();
@@ -69,15 +89,20 @@ export function ManageSubscriptionProducts({ allProducts, currentProductIds, onS
       }
     });
   };
-
-  const selectedProducts = allProducts.filter(p => selectedIds.includes(p.id));
+  
+  const selectedProducts = useMemo(() => {
+    return selectedItems.map(item => {
+      const product = allProducts.find(p => p.id === item.productId);
+      return { ...product, quantity: item.quantity } as Product & { quantity: number };
+    }).filter(p => p.id);
+  }, [selectedItems, allProducts]);
 
   return (
     <DialogContent className="sm:max-w-[800px]">
       <DialogHeader>
         <DialogTitle className="font-headline uppercase">Manage Your Gritbox Products</DialogTitle>
         <DialogDescription>
-          Select {subscriptionProductCount} bars for your next delivery. Your changes will apply to your next shipment.
+          Mix and match any {subscriptionProductCount} bars for your next delivery. Your changes will apply to your next shipment.
         </DialogDescription>
       </DialogHeader>
       
@@ -88,35 +113,49 @@ export function ManageSubscriptionProducts({ allProducts, currentProductIds, onS
             <div className="p-4 space-y-4">
               {allProducts.map(product => (
                 <div key={product.id} className="flex items-center space-x-3">
-                  <Checkbox
-                    id={`select-${product.id}`}
-                    checked={selectedIds.includes(product.id)}
-                    onCheckedChange={(checked) => handleCheckboxChange(product.id, !!checked)}
-                    disabled={!selectedIds.includes(product.id) && selectedIds.length >= subscriptionProductCount}
-                  />
-                  <label htmlFor={`select-${product.id}`} className="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70 flex-grow cursor-pointer">
+                    <Image src={product.imageUrl} alt={product.name} width={40} height={40} className="rounded-md object-cover" data-ai-hint={product.tags.join(' ')} />
+                  <label htmlFor={`select-${product.id}`} className="text-sm font-medium leading-none flex-grow">
                     {product.name}
                   </label>
-                  <span className="text-sm text-muted-foreground">${product.price.toFixed(2)}</span>
+                  <Button 
+                    size="sm" 
+                    variant="outline"
+                    onClick={() => handleQuantityChange(product.id, 1)}
+                    disabled={totalQuantity >= subscriptionProductCount}
+                  >
+                    <Plus className="h-4 w-4 mr-1" /> Add
+                  </Button>
                 </div>
               ))}
             </div>
           </ScrollArea>
         </div>
         <div>
-          <h4 className="font-headline mb-2 text-base">Your Next Gritbox ({selectedIds.length}/{subscriptionProductCount})</h4>
+          <h4 className="font-headline mb-2 text-base">Your Next Gritbox ({totalQuantity}/{subscriptionProductCount})</h4>
           <div className="h-96 p-4 border rounded-md space-y-3 bg-background flex flex-col">
              {selectedProducts.length > 0 ? (
                 selectedProducts.map(product => (
                   <div key={`selected-${product.id}`} className="flex items-center gap-3">
                       <Image src={product.imageUrl} alt={product.name} width={40} height={40} className="rounded-md object-cover" data-ai-hint={product.tags.join(' ')} />
                       <p className="flex-grow text-sm">{product.name}</p>
-                      <Button variant="ghost" size="sm" onClick={() => handleCheckboxChange(product.id, false)} className="text-muted-foreground hover:text-destructive">Remove</Button>
+                      <div className="flex items-center gap-1">
+                          <Button variant="outline" size="icon" className="h-7 w-7" onClick={() => handleQuantityChange(product.id, -1)}>
+                              <Minus className="h-4 w-4" />
+                          </Button>
+                          <Input type="number" value={product.quantity} className="w-12 h-7 text-center bg-card" readOnly />
+                          <Button variant="outline" size="icon" className="h-7 w-7" onClick={() => handleQuantityChange(product.id, 1)} disabled={totalQuantity >= subscriptionProductCount}>
+                              <Plus className="h-4 w-4" />
+                          </Button>
+                      </div>
                   </div>
                 ))
             ) : (
-                <div className="flex-grow flex items-center justify-center">
-                    <p className="text-sm text-muted-foreground text-center">Select products from the list on the left.</p>
+                <div className="flex-grow flex items-center justify-center text-center">
+                    <div className="text-muted-foreground">
+                        <Package className="h-10 w-10 mx-auto mb-2" />
+                        <p className="text-sm">Your Gritbox is empty.</p>
+                        <p className="text-xs">Add products from the list on the left.</p>
+                    </div>
                 </div>
             )}
           </div>
@@ -125,7 +164,7 @@ export function ManageSubscriptionProducts({ allProducts, currentProductIds, onS
 
       <DialogFooter>
         <Button type="button" variant="outline" onClick={onClose}>Cancel</Button>
-        <Button onClick={handleSave} disabled={isPending || selectedIds.length !== subscriptionProductCount}>
+        <Button onClick={handleSave} disabled={isPending || totalQuantity !== subscriptionProductCount}>
           {isPending && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
           Save Changes
         </Button>
