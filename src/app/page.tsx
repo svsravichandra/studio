@@ -14,14 +14,17 @@ async function getFeaturedProducts(): Promise<{ products: Product[] } | { error:
   }
   try {
     const productsRef = collection(db, "products");
-    const q = query(productsRef, where("isFeatured", "==", true), limit(4));
-    const querySnapshot = await getDocs(q);
+    const querySnapshot = await getDocs(productsRef); // Fetch all products
 
-    const products: Product[] = [];
+    const allProducts: Product[] = [];
     querySnapshot.forEach((doc) => {
-      products.push({ id: doc.id, ...doc.data() } as Product);
+      allProducts.push({ id: doc.id, ...doc.data() } as Product);
     });
-    return { products };
+
+    // Filter for featured products in code and take the first 4
+    const featuredProducts = allProducts.filter(p => p.isFeatured).slice(0, 4);
+
+    return { products: featuredProducts };
   } catch (error: any) {
     console.error("Error fetching featured products: ", error);
     const errorMessage = error.message || "An unknown error occurred";
