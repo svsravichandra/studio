@@ -27,16 +27,22 @@ export default function OrdersPage() {
         const ordersRef = collection(db, 'orders');
         const q = query(ordersRef, where('userId', '==', user.uid), orderBy('createdAt', 'desc'));
         const querySnapshot = await getDocs(q);
-        const fetchedOrders: Order[] = [];
-        querySnapshot.forEach(doc => {
+        
+        const fetchedOrders = querySnapshot.docs.map(doc => {
             const data = doc.data();
             const createdAtTimestamp = data.createdAt as Timestamp;
-            fetchedOrders.push({
+            return {
                 id: doc.id,
+                userId: data.userId,
+                items: data.items,
+                total: data.total,
+                status: data.status,
+                shippingAddress: data.shippingAddress,
+                paymentIntentId: data.paymentIntentId,
                 createdAt: createdAtTimestamp ? createdAtTimestamp.toDate().toISOString() : new Date().toISOString(),
-                ...data
-            } as Order);
+            } as Order;
         });
+
         setOrders(fetchedOrders);
       } catch (error) {
         console.error("Error fetching orders: ", error);
