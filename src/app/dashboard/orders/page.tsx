@@ -12,6 +12,11 @@ import { useEffect, useState } from "react";
 import { collection, getDocs, orderBy, query, Timestamp, where } from "firebase/firestore";
 import { db } from "@/lib/firebase";
 import { TrackingInfoModal } from './tracking-info-modal';
+import { useCart } from "@/context/cart-context";
+import { getProductsByIdsAction } from "@/app/actions";
+import { useToast } from "@/hooks/use-toast";
+import { useRouter } from "next/navigation";
+
 
 export default function OrdersPage() {
   const { user } = useAuth();
@@ -19,6 +24,10 @@ export default function OrdersPage() {
   const [isLoading, setIsLoading] = useState(true);
   const [selectedOrder, setSelectedOrder] = useState<Order | null>(null);
   const [isTrackingModalOpen, setIsTrackingModalOpen] = useState(false);
+  const { addToCart } = useCart();
+  const { toast } = useToast();
+  const router = useRouter();
+  const [reorderingId, setReorderingId] = useState<string | null>(null);
 
   useEffect(() => {
     const fetchOrders = async () => {
@@ -58,6 +67,53 @@ export default function OrdersPage() {
     };
     fetchOrders();
   }, [user]);
+
+  const handleReorder = async (order: Order) => {
+    setReorderingId(order.id);
+    try {
+        const productIds = order.items.map(item => item.productId);
+        if (productIds.length === 0) return;
+
+        const products = await getProductsByIdsAction(productIds);
+        
+        if (products.length > 0) {
+            order.items.forEach(orderItem => {
+                const productDetails = products.find(p => p.id === orderItem.productId);
+                if (productDetails) {
+                    addToCart(productDetails, orderItem.quantity);
+                }
+            });
+            
+            toast({
+                title: "Items Added to Cart",
+                description: "Your previous order has been added to your cart."
+            });
+            router.push('/cart');
+        } else {
+            toast({
+                title: "Reorder Failed",
+                description: "Could not find products from your previous order. They may no longer be available.",
+                variant: "destructive"
+            });
+        }
+    } catch (error) {
+        toast({
+            title: "Reorder Failed",
+            description: "An unexpected error occurred. Please try again.",
+            variant: "destructive"
+        });
+        console.error("Reorder error:", error);
+    } finally {
+        setReorderingId(null);
+    }
+  };
+
+  const handleReturnRequest = (order: Order) => {
+    toast({
+        title: "Return Request Received",
+        description: `We've received your return request for order #${order.id}. Our support team will contact you via email within 24-48 hours with next steps.`
+    });
+  };
 
   const getStatusVariant = (status: Order['status']) => {
     switch (status) {
@@ -123,10 +179,10 @@ export default function OrdersPage() {
                         <Button variant="outline" size="sm" title="Track Order" onClick={() => handleTrackClick(order)} disabled={!order.trackingNumber || !order.carrier}>
                           <Truck className="h-4 w-4" />
                         </Button>
-                        <Button variant="outline" size="sm" title="Reorder">
-                          <Repeat className="h-4 w-4" />
+                        <Button variant="outline" size="sm" title="Reorder" onClick={() => handleReorder(order)} disabled={reorderingId === order.id}>
+                          {reorderingId === order.id ? <Loader2 className="h-4 w-4 animate-spin" /> : <Repeat className="h-4 w-4" />}
                         </Button>
-                        <Button variant="outline" size="sm" title="Request Return">
+                        <Button variant="outline" size="sm" title="Request Return" onClick={() => handleReturnRequest(order)} disabled={order.status !== 'delivered'}>
                           <RefreshCcw className="h-4 w-4" />
                         </Button>
                     </TableCell>
