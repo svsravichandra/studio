@@ -7,6 +7,7 @@ import {
 import type { Product } from '@/lib/types';
 import { db } from '@/lib/firebase';
 import { collection, query, where, documentId, getDocs } from 'firebase/firestore';
+import { mapProduct } from '@/lib/mappers';
 
 export async function getRecommendationsAction(
   input: PersonalizedRecommendationsInput
@@ -43,7 +44,7 @@ export async function getProductsByIdsAction(productIds: string[]): Promise<Prod
         const productSnapshots = await Promise.all(promises);
         productSnapshots.forEach(snapshot => {
             snapshot.forEach(doc => {
-                products.push({ id: doc.id, ...doc.data() } as Product);
+                products.push(mapProduct(doc));
             });
         });
         

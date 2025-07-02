@@ -45,7 +45,7 @@ export default function OrdersPage() {
         
         const fetchedOrders = querySnapshot.docs.map(mapOrder);
 
-        setOrders(JSON.parse(JSON.stringify(fetchedOrders)));
+        setOrders(fetchedOrders);
       } catch (error) {
         console.error("Error fetching orders: ", error);
       } finally {
