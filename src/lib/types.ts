@@ -51,6 +51,7 @@ export interface Order {
     status: 'processing' | 'shipped' | 'delivered' | 'cancelled';
     shippingAddress: Address;
     trackingNumber?: string;
+    carrier?: string;
     paymentIntentId?: string;
     createdAt: string; 
 }

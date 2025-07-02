@@ -18,7 +18,9 @@ import { Printer, PackageCheck, Ban, Truck, Loader2 } from 'lucide-react';
 import Image from 'next/image';
 import { useState, useTransition, useEffect } from 'react';
 import { useToast } from '@/hooks/use-toast';
-import { updateOrderStatus, updateOrderTracking } from '@/app/admin/actions';
+import { updateOrderStatus, updateOrderShipmentDetails } from '@/app/admin/actions';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+
 
 type OrderWithUser = Order & { user: { id: string; name: string; email: string } };
 
@@ -33,12 +35,18 @@ export function OrderDetailModal({ order, onUpdate }: OrderDetailModalProps) {
   const [isPending, startTransition] = useTransition();
   const [isUpdatingTracking, startTrackingUpdate] = useTransition();
   const [trackingInput, setTrackingInput] = useState('');
+  const [carrierInput, setCarrierInput] = useState('');
     
   useEffect(() => {
     if (order?.trackingNumber) {
         setTrackingInput(order.trackingNumber);
     } else {
         setTrackingInput('');
+    }
+    if (order?.carrier) {
+        setCarrierInput(order.carrier);
+    } else {
+        setCarrierInput('');
     }
   }, [order]);
 
@@ -60,22 +68,30 @@ export function OrderDetailModal({ order, onUpdate }: OrderDetailModalProps) {
     });
   };
 
-  const handleTrackingUpdate = () => {
+  const handleShipmentUpdate = () => {
     if (!trackingInput.trim()) {
         toast({ title: "Info", description: "Tracking number cannot be empty."});
         return;
     }
+    if (!carrierInput) {
+        toast({ title: "Info", description: "Please select a carrier."});
+        return;
+    }
     startTrackingUpdate(async () => {
         try {
-            const result = await updateOrderTracking({ orderId: order.id, trackingNumber: trackingInput });
+            const result = await updateOrderShipmentDetails({ 
+              orderId: order.id, 
+              trackingNumber: trackingInput,
+              carrier: carrierInput,
+            });
             if (result.success) {
                 toast({ title: "Success", description: result.message });
                 onUpdate();
             } else {
-                throw new Error("Failed to update tracking number");
+                throw new Error("Failed to update shipment details");
             }
         } catch (error) {
-            toast({ title: "Error", description: "Could not update tracking number.", variant: "destructive" });
+            toast({ title: "Error", description: "Could not update shipment details.", variant: "destructive" });
         }
     });
   };
@@ -142,25 +158,47 @@ export function OrderDetailModal({ order, onUpdate }: OrderDetailModalProps) {
                 </div>
 
                 <h4 className="font-headline mt-4 mb-2 text-lg">Status</h4>
-                <div className="rounded-lg border p-4 bg-background">
+                 <div className="rounded-lg border p-4 bg-background">
                     <Badge variant={getStatusVariant(order.status)} className="capitalize text-base">{order.status}</Badge>
+                    {order.trackingNumber && (
+                        <div className="text-sm mt-3">
+                            <p className="text-muted-foreground">
+                                <span className="font-medium text-foreground">{order.carrier}</span>: <a href="#" className="underline hover:text-primary">{order.trackingNumber}</a>
+                            </p>
+                        </div>
+                    )}
                 </div>
 
+
                  <div className="mt-4 print:hidden">
-                    <h4 className="font-headline mb-2 text-lg">Tracking</h4>
-                    <div className="flex items-end gap-2">
-                        <div className="flex-grow">
-                            <Label htmlFor="tracking-number" className="sr-only">Tracking Number</Label>
-                            <Input 
-                                id="tracking-number" 
-                                placeholder="Enter tracking number" 
-                                value={trackingInput}
-                                onChange={(e) => setTrackingInput(e.target.value)}
-                                disabled={isUpdatingTracking} 
-                                className="bg-background"/>
-                        </div>
-                        <Button onClick={handleTrackingUpdate} disabled={isUpdatingTracking}>
-                            {isUpdatingTracking ? <Loader2 className="animate-spin" /> : 'Update'}
+                    <h4 className="font-headline mb-2 text-lg">Shipment Details</h4>
+                    <div className="space-y-2">
+                      <div>
+                        <Label htmlFor="carrier" className="text-sm text-muted-foreground">Carrier</Label>
+                        <Select value={carrierInput} onValueChange={setCarrierInput} disabled={isUpdatingTracking}>
+                            <SelectTrigger id="carrier" className="bg-background">
+                                <SelectValue placeholder="Select a carrier" />
+                            </SelectTrigger>
+                            <SelectContent>
+                                <SelectItem value="UPS">UPS</SelectItem>
+                                <SelectItem value="USPS">USPS</SelectItem>
+                                <SelectItem value="FedEx">FedEx</SelectItem>
+                                <SelectItem value="Other">Other</SelectItem>
+                            </SelectContent>
+                        </Select>
+                      </div>
+                      <div>
+                        <Label htmlFor="tracking-number" className="text-sm text-muted-foreground">Tracking Number</Label>
+                        <Input 
+                            id="tracking-number" 
+                            placeholder="Enter tracking number" 
+                            value={trackingInput}
+                            onChange={(e) => setTrackingInput(e.target.value)}
+                            disabled={isUpdatingTracking} 
+                            className="bg-background"/>
+                      </div>
+                        <Button onClick={handleShipmentUpdate} disabled={isUpdatingTracking} className="w-full">
+                            {isUpdatingTracking ? <Loader2 className="animate-spin" /> : 'Update Shipment Details'}
                         </Button>
                     </div>
                 </div>

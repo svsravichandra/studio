@@ -62,6 +62,7 @@ export async function getAllOrders(): Promise<(Order & { user: { id: string, nam
             items: data.items,
             shippingAddress: data.shippingAddress,
             trackingNumber: data.trackingNumber || '',
+            carrier: data.carrier || '',
             user: {
                 id: userId,
                 name: users[userId]?.name || 'Unknown User',
@@ -82,12 +83,12 @@ export async function updateOrderStatus({ orderId, status }: { orderId: string, 
     return { success: true, message: `Order ${orderId} updated to ${status}` };
 }
 
-export async function updateOrderTracking({ orderId, trackingNumber }: { orderId: string, trackingNumber: string }) {
+export async function updateOrderShipmentDetails({ orderId, trackingNumber, carrier }: { orderId: string, trackingNumber: string, carrier: string }) {
     if (!db) throw new Error("DB connection failed");
     const orderRef = doc(db, 'orders', orderId);
-    await updateDoc(orderRef, { trackingNumber });
+    await updateDoc(orderRef, { trackingNumber, carrier });
     revalidatePath('/admin/orders');
-    return { success: true, message: `Tracking for order ${orderId} updated.` };
+    return { success: true, message: `Shipment details for order ${orderId} updated.` };
 }
 
 
