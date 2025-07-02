@@ -2,9 +2,10 @@
 'use server';
 
 import { db } from '@/lib/firebase';
-import { Product, Order, UserProfile, Address } from '@/lib/types';
-import { collection, collectionGroup, getDocs, doc, updateDoc, addDoc, deleteDoc, setDoc, Timestamp, query, where, documentId, orderBy, writeBatch } from 'firebase/firestore';
+import { Product, Order, UserProfile, Address, ReturnRequest } from '@/lib/types';
+import { collection, getDocs, doc, updateDoc, addDoc, deleteDoc, setDoc, query, where, documentId, orderBy } from 'firebase/firestore';
 import { revalidatePath } from 'next/cache';
+import { mapOrder, mapProduct, mapReturnRequest, mapUser } from '@/lib/mappers';
 
 // Orders
 export async function getAllOrders(): Promise<(Order & { user: { id: string, name: string, email: string } })[]> {
@@ -18,15 +19,16 @@ export async function getAllOrders(): Promise<(Order & { user: { id: string, nam
     if (ordersSnapshot.empty) {
         return [];
     }
+
+    const mappedOrders = ordersSnapshot.docs.map(mapOrder);
     
     // 2. Collect all unique user IDs from the orders
-    const userIds = [...new Set(ordersSnapshot.docs.map(d => d.data().userId))];
+    const userIds = [...new Set(mappedOrders.map(o => o.userId))];
     
     // 3. Fetch user data for these user IDs in batches
     const users: Record<string, {name: string, email: string}> = {};
     if (userIds.length > 0) {
         const usersRef = collection(db, 'users');
-        // Firestore 'in' queries are limited to 30 elements, so we batch them.
         const promises = [];
         for (let i = 0; i < userIds.length; i += 30) {
             const chunk = userIds.slice(i, i + 30);
@@ -37,39 +39,29 @@ export async function getAllOrders(): Promise<(Order & { user: { id: string, nam
         const userSnapshots = await Promise.all(promises);
         userSnapshots.forEach(snapshot => {
             snapshot.forEach(doc => {
-                const data = doc.data();
+                const user = mapUser(doc);
                 users[doc.id] = {
-                    name: data.name || 'N/A',
-                    email: data.email || 'N/A'
+                    name: user.name || 'N/A',
+                    email: user.email || 'N/A'
                 };
             });
         });
     }
 
     // 4. Combine order data with user data
-    const orders = ordersSnapshot.docs.map(docSnapshot => {
-        const data = docSnapshot.data();
-        const userId = data.userId;
-        const createdAtTimestamp = data.createdAt as Timestamp;
+    const ordersData = mappedOrders.map(order => {
+        const userId = order.userId;
         return {
-            id: docSnapshot.id,
-            userId,
-            createdAt: (createdAtTimestamp && typeof createdAtTimestamp.toDate === 'function')
-                ? createdAtTimestamp.toDate().toISOString()
-                : new Date().toISOString(),
-            status: data.status,
-            total: data.total,
-            items: data.items,
-            shippingAddress: data.shippingAddress,
+            ...order,
             user: {
                 id: userId,
                 name: users[userId]?.name || 'Unknown User',
                 email: users[userId]?.email || 'Unknown Email',
             }
-        } as Order & { user: { id: string, name: string, email: string } };
+        };
     });
 
-    return orders;
+    return JSON.parse(JSON.stringify(ordersData));
 }
 
 
@@ -81,12 +73,21 @@ export async function updateOrderStatus({ orderId, status }: { orderId: string, 
     return { success: true, message: `Order ${orderId} updated to ${status}` };
 }
 
+export async function updateOrderShipmentDetails({ orderId, trackingNumber, carrier }: { orderId: string, trackingNumber: string, carrier: string }) {
+    if (!db) throw new Error("DB connection failed");
+    const orderRef = doc(db, 'orders', orderId);
+    await updateDoc(orderRef, { trackingNumber, carrier });
+    revalidatePath('/admin/orders');
+    return { success: true, message: `Shipment details for order ${orderId} updated.` };
+}
+
 
 // Products
 export async function getAllProducts(): Promise<Product[]> {
     if (!db) throw new Error("DB connection failed");
     const productsSnapshot = await getDocs(collection(db, 'products'));
-    return productsSnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as Product));
+    const products = productsSnapshot.docs.map(mapProduct);
+    return JSON.parse(JSON.stringify(products));
 }
 
 export async function upsertProduct(product: Partial<Product>) {
@@ -133,21 +134,8 @@ export async function deleteProduct(productId: string) {
 export async function getAllUsers(): Promise<UserProfile[]> {
     if (!db) throw new Error("DB connection failed");
     const usersSnapshot = await getDocs(collection(db, 'users'));
-    return usersSnapshot.docs.map(doc => {
-        const data = doc.data();
-        const createdAtTimestamp = data.createdAt as Timestamp;
-        return {
-            uid: doc.id,
-            name: data.name || '',
-            email: data.email || '',
-            phone: data.phone || '',
-            address: data.address || {},
-            role: data.role || 'customer',
-            createdAt: (createdAtTimestamp && typeof createdAtTimestamp.toDate === 'function')
-                ? createdAtTimestamp.toDate().toISOString()
-                : new Date().toISOString(),
-        };
-    });
+    const users = usersSnapshot.docs.map(mapUser);
+    return JSON.parse(JSON.stringify(users));
 }
 
 export async function updateUserRole({ userId, role }: { userId: string, role: string }) {
@@ -156,4 +144,50 @@ export async function updateUserRole({ userId, role }: { userId: string, role: s
     await updateDoc(userRef, { role });
     revalidatePath('/admin/users');
     return { success: true, message: `User ${userId} role updated to ${role}.` };
+}
+
+// Return Requests
+export async function getAllReturnRequests(): Promise<ReturnRequest[]> {
+    if (!db) throw new Error("DB connection failed");
+    const returnsRef = collection(db, 'returns');
+    const returnsQuery = query(returnsRef, orderBy('requestedAt', 'desc'));
+    const returnsSnapshot = await getDocs(returnsQuery);
+
+    if (returnsSnapshot.empty) {
+        return [];
+    }
+
+    const returnsData = returnsSnapshot.docs.map(mapReturnRequest);
+    return JSON.parse(JSON.stringify(returnsData));
+}
+
+export async function updateReturnStatus({ returnId, status }: { returnId: string, status: ReturnRequest['status'] }) {
+    if (!db) throw new Error("DB connection failed");
+    const returnRef = doc(db, 'returns', returnId);
+    await updateDoc(returnRef, { status });
+
+    // Also update the corresponding order's status
+    const orderRef = doc(db, 'orders', returnId); // returnId is the same as orderId
+    let orderStatus: Order['status'] | null = null;
+    switch (status) {
+        case 'approved':
+            orderStatus = 'return started';
+            break;
+        case 'completed':
+            orderStatus = 'return completed';
+            break;
+        case 'refunded':
+            orderStatus = 'refunded';
+            break;
+        // Not handling 'rejected' or 'pending' to avoid complexity,
+        // as the original state isn't tracked.
+    }
+
+    if (orderStatus) {
+        await updateDoc(orderRef, { status: orderStatus });
+        revalidatePath('/admin/orders');
+    }
+
+    revalidatePath('/admin/returns');
+    return { success: true, message: `Return request ${returnId} updated to ${status}` };
 }

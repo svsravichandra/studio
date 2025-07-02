@@ -15,7 +15,7 @@ export interface UserProfile {
     phone?: string;
     address?: Address;
     role: 'customer' | 'admin';
-    createdAt: any; // Can be a server timestamp
+    createdAt: string; 
 }
 
 export interface Product {
@@ -48,10 +48,12 @@ export interface Order {
     userId: string;
     items: OrderProduct[];
     total: number;
-    status: 'processing' | 'shipped' | 'delivered' | 'cancelled';
+    status: 'processing' | 'shipped' | 'delivered' | 'cancelled' | 'return started' | 'return completed' | 'refunded';
     shippingAddress: Address;
+    trackingNumber?: string;
+    carrier?: string;
     paymentIntentId?: string;
-    createdAt: any; // Can be a server timestamp
+    createdAt: string; 
 }
 
 export interface SubscriptionProduct {
@@ -66,6 +68,19 @@ export interface Subscription {
     frequency: 'monthly' | 'bi-monthly';
     active: boolean;
     stripeSubscriptionId?: string;
+    paymentMethodId?: string;
     nextDelivery: string;
-    createdAt: any; // Can be a server timestamp
+    createdAt: string;
+}
+
+export interface ReturnRequest {
+    id: string; // Same as orderId
+    orderId: string;
+    userId: string;
+    userName: string;
+    userEmail: string;
+    orderTotal: number;
+    orderDate: string;
+    status: 'pending' | 'approved' | 'rejected' | 'completed' | 'refunded';
+    requestedAt: string;
 }

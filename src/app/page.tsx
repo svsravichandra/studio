@@ -4,9 +4,10 @@ import Image from 'next/image';
 import { RecommendationForm } from '@/components/recommendation-form';
 import Link from 'next/link';
 import type { Product } from '@/lib/types';
-import { collection, getDocs, query, where, limit } from 'firebase/firestore';
+import { collection, getDocs } from 'firebase/firestore';
 import { db } from '@/lib/firebase';
 import { FeaturedProducts } from '@/components/featured-products';
+import { mapProduct } from '@/lib/mappers';
 
 async function getFeaturedProducts(): Promise<{ products: Product[] } | { error: string }> {
   if (!db) {
@@ -16,15 +17,12 @@ async function getFeaturedProducts(): Promise<{ products: Product[] } | { error:
     const productsRef = collection(db, "products");
     const querySnapshot = await getDocs(productsRef); // Fetch all products
 
-    const allProducts: Product[] = [];
-    querySnapshot.forEach((doc) => {
-      allProducts.push({ id: doc.id, ...doc.data() } as Product);
-    });
-
+    const allProducts: Product[] = querySnapshot.docs.map(mapProduct);
+    
     // Filter for featured products in code and take the first 4
     const featuredProducts = allProducts.filter(p => p.isFeatured).slice(0, 4);
 
-    return { products: featuredProducts };
+    return { products: JSON.parse(JSON.stringify(featuredProducts)) };
   } catch (error: any) {
     console.error("Error fetching featured products: ", error);
     const errorMessage = error.message || "An unknown error occurred";

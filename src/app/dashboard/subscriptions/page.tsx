@@ -11,7 +11,7 @@ import { useAuth } from "@/context/auth-context";
 import { useEffect, useState, useTransition, useCallback } from "react";
 import { doc, getDoc, setDoc, getDocs, collection, query, where, documentId, serverTimestamp } from "firebase/firestore";
 import { db } from "@/lib/firebase";
-import { Loader2 } from "lucide-react";
+import { CreditCard, Loader2 } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import {
   AlertDialog,
@@ -29,27 +29,27 @@ import {
     updateSubscriptionFrequency,
     updateSubscriptionStatus
 } from "./actions";
-import { Dialog, DialogTrigger } from '@/components/ui/dialog';
+import { Dialog } from '@/components/ui/dialog';
 import { ManageSubscriptionProducts } from './manage-products';
 import { getAllProducts as fetchAllStoreProducts } from '@/app/admin/actions';
+import { mapSubscription } from "@/lib/mappers";
+import { CreateSubscriptionModal } from "./create-subscription-modal";
+import { ChangePaymentModal } from "./change-payment-modal";
 
 type SubscriptionDisplayProduct = Product & { quantity: number };
 
-async function getSubscriptionProducts(items: any[]): Promise<SubscriptionDisplayProduct[]> {
+const mockPaymentMethods = [
+    { id: 'pm_1', type: 'Visa', last4: '4242', isDefault: true },
+    { id: 'pm_2', type: 'Mastercard', last4: '1234', isDefault: false },
+]
+
+async function getSubscriptionProducts(items: SubscriptionProduct[]): Promise<SubscriptionDisplayProduct[]> {
     if (!db || !items || items.length === 0) return [];
     
     const productQuantities: { [key: string]: number } = {};
-    const productIds: string[] = [];
-
-    items.forEach(item => {
-        if (typeof item === 'string') {
-            productIds.push(item);
-            // For old string[] format, assume quantity is 1 and handle duplicates by counting
-            productQuantities[item] = (productQuantities[item] || 0) + 1;
-        } else if (item && typeof item.productId === 'string' && typeof item.quantity === 'number') {
-            productIds.push(item.productId);
-            productQuantities[item.productId] = item.quantity;
-        }
+    const productIds = items.map(item => {
+        productQuantities[item.productId] = item.quantity;
+        return item.productId;
     });
 
     const uniqueProductIds = [...new Set(productIds)];
@@ -100,8 +100,9 @@ export default function SubscriptionsPage() {
     const [products, setProducts] = useState<SubscriptionDisplayProduct[]>([]);
     const [allProducts, setAllProducts] = useState<Product[]>([]);
     const [isLoading, setIsLoading] = useState(true);
-    const [isCreating, setIsCreating] = useState(false);
     const [isManageOpen, setIsManageOpen] = useState(false);
+    const [isCreateModalOpen, setIsCreateModalOpen] = useState(false);
+    const [isChangePaymentOpen, setIsChangePaymentOpen] = useState(false);
     const [isPending, startTransition] = useTransition();
 
     const fetchSubscriptionData = useCallback(async () => {
@@ -121,7 +122,7 @@ export default function SubscriptionsPage() {
             setAllProducts(allProductsData);
 
             if (docSnap.exists()) {
-                const subData = { id: docSnap.id, ...docSnap.data() } as Subscription;
+                const subData = mapSubscription(docSnap);
                 setSubscription(subData);
                 if (subData.items && subData.items.length > 0) {
                   const productDetails = await getSubscriptionProducts(subData.items);
@@ -147,51 +148,6 @@ export default function SubscriptionsPage() {
             fetchSubscriptionData();
         }
     }, [user, fetchSubscriptionData]);
-
-    const createDefaultSubscription = async () => {
-        if (!user || !db) return;
-        setIsCreating(true);
-
-        const nextDeliveryDate = new Date();
-        nextDeliveryDate.setMonth(nextDeliveryDate.getMonth() + 1);
-
-        const defaultItems: SubscriptionProduct[] = [
-            { productId: 'timber-trail', quantity: 1 },
-            { productId: 'whiskey-oak', quantity: 1 },
-            { productId: 'arctic-steel', quantity: 1 },
-        ];
-
-        const defaultSubscription: Omit<Subscription, 'id'> = {
-            userId: user.uid,
-            active: true,
-            frequency: 'monthly',
-            nextDelivery: nextDeliveryDate.toISOString(),
-            items: defaultItems,
-            createdAt: serverTimestamp(),
-        };
-
-        try {
-            const subRef = doc(db, 'subscriptions', user.uid);
-            await setDoc(subRef, defaultSubscription);
-            
-            // Refetch all data to ensure consistency
-            await fetchSubscriptionData();
-
-            toast({
-                title: "Subscription Started!",
-                description: "Your Gritbox is now active."
-            });
-        } catch (error) {
-            console.error("Error creating subscription:", error);
-            toast({
-                title: "Error",
-                description: "Could not start your subscription. Please try again.",
-                variant: "destructive",
-            });
-        } finally {
-            setIsCreating(false);
-        }
-    };
     
     const handleFrequencyChange = () => {
         if (!user || !subscription) return;
@@ -240,6 +196,17 @@ export default function SubscriptionsPage() {
         fetchSubscriptionData();
     };
 
+    const handleCreateSuccess = () => {
+        setIsCreateModalOpen(false);
+        fetchSubscriptionData();
+    };
+    
+    const handleChangePaymentSuccess = () => {
+        setIsChangePaymentOpen(false);
+        fetchSubscriptionData();
+    };
+
+
     if (isLoading) {
         return (
             <Card className="bg-card border-border/50">
@@ -256,113 +223,148 @@ export default function SubscriptionsPage() {
     
     if (!subscription) {
         return (
-             <Card className="bg-card border-border/50">
-                <CardHeader>
-                    <CardTitle className="font-headline uppercase text-2xl">Gritbox Subscription</CardTitle>
-                    <CardDescription>Manage your monthly soap delivery.</CardDescription>
-                </CardHeader>
-                <CardContent className="text-center py-12 text-muted-foreground">
-                    <p>You do not have an active subscription.</p>
-                    <Button className="mt-4" onClick={createDefaultSubscription} disabled={isCreating}>
-                        {isCreating && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
-                        Start a Gritbox Subscription
-                    </Button>
-                </CardContent>
-            </Card>
+             <Dialog open={isCreateModalOpen} onOpenChange={setIsCreateModalOpen}>
+                <Card className="bg-card border-border/50">
+                    <CardHeader>
+                        <CardTitle className="font-headline uppercase text-2xl">Gritbox Subscription</CardTitle>
+                        <CardDescription>Manage your monthly soap delivery.</CardDescription>
+                    </CardHeader>
+                    <CardContent className="text-center py-12 text-muted-foreground">
+                        <p>You do not have an active subscription.</p>
+                        <Button className="mt-4" onClick={() => setIsCreateModalOpen(true)}>
+                            Start a Gritbox Subscription
+                        </Button>
+                    </CardContent>
+                </Card>
+                
+                {allProducts.length > 0 && (
+                    <CreateSubscriptionModal
+                        allProducts={allProducts}
+                        onSuccess={handleCreateSuccess}
+                        onClose={() => setIsCreateModalOpen(false)}
+                    />
+                )}
+            </Dialog>
         );
     }
 
-  return (
-    <Dialog open={isManageOpen} onOpenChange={setIsManageOpen}>
-        <Card className="bg-card border-border/50">
-        <CardHeader>
-            <div className="flex justify-between items-start">
-                <div>
-                    <CardTitle className="font-headline uppercase text-2xl">Gritbox Subscription</CardTitle>
-                    <CardDescription>Manage your monthly soap delivery.</CardDescription>
-                </div>
-                <Badge variant={subscription.active ? 'default' : 'secondary'} className="text-base">
-                    {subscription.active ? 'Active' : 'Paused'}
-                </Badge>
-            </div>
-        </CardHeader>
-        <CardContent>
-            <div className="grid md:grid-cols-2 gap-6 mb-6">
-                <div>
-                    <h4 className="font-headline uppercase">Current Products</h4>
-                    <div className="mt-2 space-y-3">
-                        {products.length > 0 ? products.map(item => (
-                            <div key={item.id} className="flex items-center gap-3">
-                                <Image src={item.imageUrl} alt={item.name} width={50} height={50} className="rounded-md object-cover" data-ai-hint={item.tags.join(' ')}/>
-                                <p className="flex-grow">{item.name} <span className="text-sm text-muted-foreground">x{item.quantity}</span></p>
-                                <p className="text-muted-foreground">${(item.price * item.quantity).toFixed(2)}</p>
-                            </div>
-                        )) : <p className="text-sm text-muted-foreground">No products in your subscription.</p>}
-                    </div>
-                </div>
-                <div>
-                    <h4 className="font-headline uppercase">Details</h4>
-                    <div className="mt-2 space-y-2 text-sm">
-                        <div className="flex justify-between">
-                            <span className="text-muted-foreground">Frequency:</span>
-                            <span className="capitalize">{subscription.frequency}</span>
-                        </div>
-                        <div className="flex justify-between">
-                            <span className="text-muted-foreground">Next Delivery:</span>
-                            <span>{new Date(subscription.nextDelivery).toLocaleDateString()}</span>
-                        </div>
-                    </div>
-                </div>
-            </div>
-            
-            <Separator className="my-6 bg-border/50" />
+    const activePaymentMethod = mockPaymentMethods.find(p => p.id === subscription.paymentMethodId) || mockPaymentMethods.find(p => p.isDefault);
 
-            <div>
-                <h4 className="font-headline uppercase mb-4">Manage Plan</h4>
-                <div className="flex flex-wrap gap-2">
-                    <DialogTrigger asChild>
-                        <Button disabled={isPending || !subscription.active}>Manage Products</Button>
-                    </DialogTrigger>
-                    <Button variant="secondary" onClick={handleFrequencyChange} disabled={isPending || !subscription.active}>
-                        {isPending && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
-                        Switch to {subscription.frequency === 'monthly' ? 'Bi-Monthly' : 'Monthly'}
-                    </Button>
-                    <Button variant="outline" onClick={handleStatusToggle} disabled={isPending}>
-                        {isPending && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
-                        {subscription.active ? 'Pause Subscription' : 'Resume Subscription'}
-                    </Button>
-                    <AlertDialog>
-                        <AlertDialogTrigger asChild>
-                            <Button variant="destructive" disabled={isPending}>Cancel Plan</Button>
-                        </AlertDialogTrigger>
-                        <AlertDialogContent>
-                            <AlertDialogHeader>
-                                <AlertDialogTitle>Are you absolutely sure?</AlertDialogTitle>
-                                <AlertDialogDescription>
-                                    This action cannot be undone. This will permanently cancel your Gritbox subscription.
-                                </AlertDialogDescription>
-                            </AlertDialogHeader>
-                            <AlertDialogFooter>
-                                <AlertDialogCancel>Keep My Subscription</AlertDialogCancel>
-                                <AlertDialogAction onClick={handleCancel} className="bg-destructive hover:bg-destructive/90">
-                                    Yes, Cancel My Plan
-                                </AlertDialogAction>
-                            </AlertDialogFooter>
-                        </AlertDialogContent>
-                    </AlertDialog>
+  return (
+    <>
+        <Dialog open={isManageOpen} onOpenChange={setIsManageOpen}>
+            <Card className="bg-card border-border/50">
+            <CardHeader>
+                <div className="flex justify-between items-start">
+                    <div>
+                        <CardTitle className="font-headline uppercase text-2xl">Gritbox Subscription</CardTitle>
+                        <CardDescription>Manage your monthly soap delivery.</CardDescription>
+                    </div>
+                    <Badge variant={subscription.active ? 'default' : 'secondary'} className="text-base">
+                        {subscription.active ? 'Active' : 'Paused'}
+                    </Badge>
                 </div>
-            </div>
-        </CardContent>
-        </Card>
-        
-        {subscription && allProducts.length > 0 && (
-            <ManageSubscriptionProducts
-                allProducts={allProducts}
-                currentItems={subscription.items}
-                onSuccess={handleManageSuccess}
-                onClose={() => setIsManageOpen(false)}
-            />
+            </CardHeader>
+            <CardContent>
+                <div className="grid md:grid-cols-2 gap-6 mb-6">
+                    <div>
+                        <h4 className="font-headline uppercase">Current Products</h4>
+                        <div className="mt-2 space-y-3">
+                            {products.length > 0 ? products.map(item => (
+                                <div key={item.id} className="flex items-center gap-3">
+                                    <Image src={item.imageUrl} alt={item.name} width={50} height={50} className="rounded-md object-cover" data-ai-hint={item.tags.join(' ')}/>
+                                    <p className="flex-grow">{item.name} <span className="text-sm text-muted-foreground">x{item.quantity}</span></p>
+                                    <p className="text-muted-foreground">${(item.price * item.quantity).toFixed(2)}</p>
+                                </div>
+                            )) : <p className="text-sm text-muted-foreground">No products in your subscription.</p>}
+                        </div>
+                    </div>
+                    <div>
+                        <h4 className="font-headline uppercase">Details</h4>
+                        <div className="mt-2 space-y-2 text-sm">
+                            <div className="flex justify-between">
+                                <span className="text-muted-foreground">Frequency:</span>
+                                <span className="capitalize">{subscription.frequency}</span>
+                            </div>
+                            <div className="flex justify-between">
+                                <span className="text-muted-foreground">Next Delivery:</span>
+                                <span>{new Date(subscription.nextDelivery).toLocaleDateString()}</span>
+                            </div>
+                             <div className="flex justify-between items-center">
+                                <span className="text-muted-foreground flex items-center gap-2"><CreditCard className="h-4 w-4" /> Billed to:</span>
+                                {activePaymentMethod ? (
+                                    <span className="font-medium">{activePaymentMethod.type} ending in {activePaymentMethod.last4}</span>
+                                ) : (
+                                    <span className="text-muted-foreground">No payment method</span>
+                                )}
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                
+                <Separator className="my-6 bg-border/50" />
+
+                <div>
+                    <h4 className="font-headline uppercase mb-4">Manage Plan</h4>
+                    <div className="flex flex-wrap gap-2">
+                        <Button onClick={() => setIsManageOpen(true)} disabled={isPending || !subscription.active}>Manage Products</Button>
+                        <Button 
+                            variant="secondary" 
+                            onClick={() => setIsChangePaymentOpen(true)} 
+                            disabled={isPending || !subscription.active}
+                        >
+                            Change Payment
+                        </Button>
+                        <Button variant="secondary" onClick={handleFrequencyChange} disabled={isPending || !subscription.active}>
+                            {isPending && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+                            Switch to {subscription.frequency === 'monthly' ? 'Bi-Monthly' : 'Monthly'}
+                        </Button>
+                        <Button variant="outline" onClick={handleStatusToggle} disabled={isPending}>
+                            {isPending && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+                            {subscription.active ? 'Pause Subscription' : 'Resume Subscription'}
+                        </Button>
+                        <AlertDialog>
+                            <AlertDialogTrigger asChild>
+                                <Button variant="destructive" disabled={isPending}>Cancel Plan</Button>
+                            </AlertDialogTrigger>
+                            <AlertDialogContent>
+                                <AlertDialogHeader>
+                                    <AlertDialogTitle>Are you absolutely sure?</AlertDialogTitle>
+                                    <AlertDialogDescription>
+                                        This action cannot be undone. This will permanently cancel your Gritbox subscription.
+                                    </AlertDialogDescription>
+                                </AlertDialogHeader>
+                                <AlertDialogFooter>
+                                    <AlertDialogCancel>Keep My Subscription</AlertDialogCancel>
+                                    <AlertDialogAction onClick={handleCancel} className="bg-destructive hover:bg-destructive/90">
+                                        Yes, Cancel My Plan
+                                    </AlertDialogAction>
+                                </AlertDialogFooter>
+                            </AlertDialogContent>
+                        </AlertDialog>
+                    </div>
+                </div>
+            </CardContent>
+            </Card>
+            
+            {subscription && allProducts.length > 0 && (
+                <ManageSubscriptionProducts
+                    allProducts={allProducts}
+                    currentItems={subscription.items}
+                    onSuccess={handleManageSuccess}
+                    onClose={() => setIsManageOpen(false)}
+                />
+            )}
+        </Dialog>
+        {subscription && (
+             <Dialog open={isChangePaymentOpen} onOpenChange={setIsChangePaymentOpen}>
+                <ChangePaymentModal
+                    subscription={subscription}
+                    onSuccess={handleChangePaymentSuccess}
+                    onClose={() => setIsChangePaymentOpen(false)}
+                />
+            </Dialog>
         )}
-    </Dialog>
+    </>
   );
 }
