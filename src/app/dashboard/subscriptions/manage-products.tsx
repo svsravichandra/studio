@@ -15,7 +15,7 @@ import { Input } from '@/components/ui/input';
 
 interface ManageSubscriptionProductsProps {
   allProducts: Product[];
-  currentItems: any[];
+  currentItems: SubscriptionProduct[];
   onSuccess: () => void;
   onClose: () => void;
 }
@@ -24,23 +24,12 @@ export function ManageSubscriptionProducts({ allProducts, currentItems, onSucces
   const { user } = useAuth();
   const { toast } = useToast();
   const subscriptionProductCount = 3;
-
-  const normalizeItems = (items: any[]): SubscriptionProduct[] => {
-    if (!items || items.length === 0) return [];
-    
-    // Check if we need to convert from old string[] format to new SubscriptionProduct[] format
-    if (typeof items[0] === 'string') {
-        const counts: { [key: string]: number } = {};
-        items.forEach(id => {
-            counts[id] = (counts[id] || 0) + 1;
-        });
-        return Object.entries(counts).map(([productId, quantity]) => ({ productId, quantity }));
-    }
-    // Already in the correct format, just ensure integrity
-    return items.filter(item => item && item.productId && typeof item.quantity === 'number') as SubscriptionProduct[];
-  };
-
-  const [selectedItems, setSelectedItems] = useState<SubscriptionProduct[]>(normalizeItems(currentItems));
+  
+  // Initialize state with a clean, plain array of objects from props
+  const [selectedItems, setSelectedItems] = useState<SubscriptionProduct[]>(
+    currentItems.map(item => ({ productId: item.productId, quantity: item.quantity }))
+  );
+  
   const [isPending, startTransition] = useTransition();
 
   const totalQuantity = useMemo(() => {

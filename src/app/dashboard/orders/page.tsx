@@ -17,6 +17,7 @@ import { getProductsByIdsAction } from "@/app/actions";
 import { useToast } from "@/hooks/use-toast";
 import { useRouter } from "next/navigation";
 import { createReturnRequest, getReturnRequestIdsForUser } from "../actions";
+import { mapOrder } from "@/lib/mappers";
 
 
 export default function OrdersPage() {
@@ -42,23 +43,7 @@ export default function OrdersPage() {
         const q = query(ordersRef, where('userId', '==', user.uid), orderBy('createdAt', 'desc'));
         const querySnapshot = await getDocs(q);
         
-        const fetchedOrders = querySnapshot.docs.map(doc => {
-            const data = doc.data();
-            const createdAtTimestamp = data.createdAt;
-            return {
-                id: doc.id,
-                userId: data.userId,
-                items: data.items,
-                total: data.total,
-                status: data.status,
-                shippingAddress: data.shippingAddress,
-                trackingNumber: data.trackingNumber || '',
-                carrier: data.carrier || '',
-                createdAt: (createdAtTimestamp && typeof createdAtTimestamp.toDate === 'function')
-                  ? createdAtTimestamp.toDate().toISOString()
-                  : new Date().toISOString(),
-            } as Order;
-        });
+        const fetchedOrders = querySnapshot.docs.map(mapOrder);
 
         setOrders(JSON.parse(JSON.stringify(fetchedOrders)));
       } catch (error) {

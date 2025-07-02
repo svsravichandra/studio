@@ -2,6 +2,7 @@ import { collection, getDocs } from "firebase/firestore";
 import { db } from "@/lib/firebase";
 import type { Product } from "@/lib/types";
 import { ProductList } from "./product-list";
+import { mapProduct } from "@/lib/mappers";
 
 async function getProducts(): Promise<{ products: Product[] } | { error: string }> {
   if (!db) {
@@ -15,11 +16,9 @@ async function getProducts(): Promise<{ products: Product[] } | { error: string 
       return { error: "No products were found in the 'products' collection. Please add products via the admin dashboard." };
     }
 
-    const productsData: Product[] = [];
-    querySnapshot.forEach((doc) => {
-      productsData.push({ id: doc.id, ...doc.data() } as Product);
-    });
-    return { products: productsData };
+    const productsData: Product[] = querySnapshot.docs.map(mapProduct);
+    
+    return { products: JSON.parse(JSON.stringify(productsData)) };
   } catch (error: any) {
     console.error("Error fetching products: ", error);
     return { error: `Failed to fetch products from the database. Error: ${error.message}` };

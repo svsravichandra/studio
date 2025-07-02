@@ -3,8 +3,9 @@
 
 import { db } from '@/lib/firebase';
 import { Product, Order, UserProfile, Address, ReturnRequest } from '@/lib/types';
-import { collection, collectionGroup, getDocs, doc, updateDoc, addDoc, deleteDoc, setDoc, Timestamp, query, where, documentId, orderBy, writeBatch } from 'firebase/firestore';
+import { collection, getDocs, doc, updateDoc, addDoc, deleteDoc, setDoc, query, where, documentId, orderBy } from 'firebase/firestore';
 import { revalidatePath } from 'next/cache';
+import { mapOrder, mapProduct, mapReturnRequest, mapUser } from '@/lib/mappers';
 
 // Orders
 export async function getAllOrders(): Promise<(Order & { user: { id: string, name: string, email: string } })[]> {
@@ -18,15 +19,16 @@ export async function getAllOrders(): Promise<(Order & { user: { id: string, nam
     if (ordersSnapshot.empty) {
         return [];
     }
+
+    const mappedOrders = ordersSnapshot.docs.map(mapOrder);
     
     // 2. Collect all unique user IDs from the orders
-    const userIds = [...new Set(ordersSnapshot.docs.map(d => d.data().userId))];
+    const userIds = [...new Set(mappedOrders.map(o => o.userId))];
     
     // 3. Fetch user data for these user IDs in batches
     const users: Record<string, {name: string, email: string}> = {};
     if (userIds.length > 0) {
         const usersRef = collection(db, 'users');
-        // Firestore 'in' queries are limited to 30 elements, so we batch them.
         const promises = [];
         for (let i = 0; i < userIds.length; i += 30) {
             const chunk = userIds.slice(i, i + 30);
@@ -37,38 +39,26 @@ export async function getAllOrders(): Promise<(Order & { user: { id: string, nam
         const userSnapshots = await Promise.all(promises);
         userSnapshots.forEach(snapshot => {
             snapshot.forEach(doc => {
-                const data = doc.data();
+                const user = mapUser(doc);
                 users[doc.id] = {
-                    name: data.name || 'N/A',
-                    email: data.email || 'N/A'
+                    name: user.name || 'N/A',
+                    email: user.email || 'N/A'
                 };
             });
         });
     }
 
     // 4. Combine order data with user data
-    const ordersData = ordersSnapshot.docs.map(docSnapshot => {
-        const data = docSnapshot.data();
-        const userId = data.userId;
-        const createdAtTimestamp = data.createdAt as Timestamp;
+    const ordersData = mappedOrders.map(order => {
+        const userId = order.userId;
         return {
-            id: docSnapshot.id,
-            userId,
-            createdAt: (createdAtTimestamp && typeof createdAtTimestamp.toDate === 'function')
-                ? createdAtTimestamp.toDate().toISOString()
-                : new Date().toISOString(),
-            status: data.status,
-            total: data.total,
-            items: data.items,
-            shippingAddress: data.shippingAddress,
-            trackingNumber: data.trackingNumber || '',
-            carrier: data.carrier || '',
+            ...order,
             user: {
                 id: userId,
                 name: users[userId]?.name || 'Unknown User',
                 email: users[userId]?.email || 'Unknown Email',
             }
-        } as Order & { user: { id: string, name: string, email: string } };
+        };
     });
 
     return JSON.parse(JSON.stringify(ordersData));
@@ -96,7 +86,7 @@ export async function updateOrderShipmentDetails({ orderId, trackingNumber, carr
 export async function getAllProducts(): Promise<Product[]> {
     if (!db) throw new Error("DB connection failed");
     const productsSnapshot = await getDocs(collection(db, 'products'));
-    const products = productsSnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as Product));
+    const products = productsSnapshot.docs.map(mapProduct);
     return JSON.parse(JSON.stringify(products));
 }
 
@@ -144,21 +134,7 @@ export async function deleteProduct(productId: string) {
 export async function getAllUsers(): Promise<UserProfile[]> {
     if (!db) throw new Error("DB connection failed");
     const usersSnapshot = await getDocs(collection(db, 'users'));
-    const users = usersSnapshot.docs.map(doc => {
-        const data = doc.data();
-        const createdAtTimestamp = data.createdAt as Timestamp;
-        return {
-            uid: doc.id,
-            name: data.name || '',
-            email: data.email || '',
-            phone: data.phone || '',
-            address: data.address || {},
-            role: data.role || 'customer',
-            createdAt: (createdAtTimestamp && typeof createdAtTimestamp.toDate === 'function')
-                ? createdAtTimestamp.toDate().toISOString()
-                : new Date().toISOString(),
-        };
-    });
+    const users = usersSnapshot.docs.map(mapUser);
     return JSON.parse(JSON.stringify(users));
 }
 
@@ -181,24 +157,7 @@ export async function getAllReturnRequests(): Promise<ReturnRequest[]> {
         return [];
     }
 
-    const returnsData = returnsSnapshot.docs.map(docSnapshot => {
-        const data = docSnapshot.data();
-        const requestedAtTimestamp = data.requestedAt as Timestamp;
-        return {
-            id: docSnapshot.id,
-            orderId: data.orderId,
-            userId: data.userId,
-            status: data.status,
-            requestedAt: (requestedAtTimestamp && typeof requestedAtTimestamp.toDate === 'function')
-                ? requestedAtTimestamp.toDate().toISOString()
-                : new Date().toISOString(),
-            orderTotal: data.orderTotal,
-            orderDate: data.orderDate,
-            userName: data.userName,
-            userEmail: data.userEmail,
-        } as ReturnRequest;
-    });
-
+    const returnsData = returnsSnapshot.docs.map(mapReturnRequest);
     return JSON.parse(JSON.stringify(returnsData));
 }
 

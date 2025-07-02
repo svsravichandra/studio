@@ -29,27 +29,20 @@ import {
     updateSubscriptionFrequency,
     updateSubscriptionStatus
 } from "./actions";
-import { Dialog, DialogTrigger } from '@/components/ui/dialog';
+import { Dialog } from '@/components/ui/dialog';
 import { ManageSubscriptionProducts } from './manage-products';
 import { getAllProducts as fetchAllStoreProducts } from '@/app/admin/actions';
+import { mapSubscription } from "@/lib/mappers";
 
 type SubscriptionDisplayProduct = Product & { quantity: number };
 
-async function getSubscriptionProducts(items: any[]): Promise<SubscriptionDisplayProduct[]> {
+async function getSubscriptionProducts(items: SubscriptionProduct[]): Promise<SubscriptionDisplayProduct[]> {
     if (!db || !items || items.length === 0) return [];
     
     const productQuantities: { [key: string]: number } = {};
-    const productIds: string[] = [];
-
-    items.forEach(item => {
-        if (typeof item === 'string') {
-            productIds.push(item);
-            // For old string[] format, assume quantity is 1 and handle duplicates by counting
-            productQuantities[item] = (productQuantities[item] || 0) + 1;
-        } else if (item && typeof item.productId === 'string' && typeof item.quantity === 'number') {
-            productIds.push(item.productId);
-            productQuantities[item.productId] = item.quantity;
-        }
+    const productIds = items.map(item => {
+        productQuantities[item.productId] = item.quantity;
+        return item.productId;
     });
 
     const uniqueProductIds = [...new Set(productIds)];
@@ -121,7 +114,7 @@ export default function SubscriptionsPage() {
             setAllProducts(allProductsData);
 
             if (docSnap.exists()) {
-                const subData = { id: docSnap.id, ...docSnap.data() } as Subscription;
+                const subData = mapSubscription(docSnap);
                 setSubscription(subData);
                 if (subData.items && subData.items.length > 0) {
                   const productDetails = await getSubscriptionProducts(subData.items);
@@ -320,9 +313,7 @@ export default function SubscriptionsPage() {
             <div>
                 <h4 className="font-headline uppercase mb-4">Manage Plan</h4>
                 <div className="flex flex-wrap gap-2">
-                    <DialogTrigger asChild>
-                        <Button disabled={isPending || !subscription.active}>Manage Products</Button>
-                    </DialogTrigger>
+                    <Button onClick={() => setIsManageOpen(true)} disabled={isPending || !subscription.active}>Manage Products</Button>
                     <Button variant="secondary" onClick={handleFrequencyChange} disabled={isPending || !subscription.active}>
                         {isPending && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
                         Switch to {subscription.frequency === 'monthly' ? 'Bi-Monthly' : 'Monthly'}
