@@ -137,23 +137,34 @@ export function ManageSubscriptionProducts({ allProducts, currentItems, onSucces
         </div>
         <div>
           <h4 className="font-headline mb-2 text-base">Your Next Gritbox ({totalQuantity}/{subscriptionProductCount})</h4>
-          <div className="h-96 p-4 border rounded-md space-y-3 bg-background flex flex-col">
+          <div className="h-96 p-4 border rounded-md bg-background flex flex-col">
              {selectedProducts.length > 0 ? (
-                selectedProducts.map(product => (
-                  <div key={`selected-${product.id}`} className="flex items-center gap-3">
-                      <Image src={product.imageUrl} alt={product.name} width={40} height={40} className="rounded-md object-cover" data-ai-hint={product.tags.join(' ')} />
-                      <p className="flex-grow text-sm">{product.name}</p>
-                      <div className="flex items-center gap-1">
-                          <Button variant="outline" size="icon" className="h-7 w-7" onClick={() => handleQuantityChange(product.id, -1)}>
-                              <Minus className="h-4 w-4" />
-                          </Button>
-                          <Input type="number" value={product.quantity} className="w-12 h-7 text-center bg-card" readOnly />
-                          <Button variant="outline" size="icon" className="h-7 w-7" onClick={() => handleQuantityChange(product.id, 1)} disabled={totalQuantity >= subscriptionProductCount}>
-                              <Plus className="h-4 w-4" />
-                          </Button>
-                      </div>
-                  </div>
-                ))
+                <>
+                  <ScrollArea className="flex-grow pr-2 -mr-2">
+                    <div className="space-y-3">
+                      {selectedProducts.map(product => (
+                        <div key={`selected-${product.id}`} className="flex items-center gap-3">
+                            <Image src={product.imageUrl} alt={product.name} width={40} height={40} className="rounded-md object-cover" data-ai-hint={product.tags.join(' ')} />
+                            <p className="flex-grow text-sm">{product.name}</p>
+                            <div className="flex items-center gap-1">
+                                <Button variant="outline" size="icon" className="h-7 w-7" onClick={() => handleQuantityChange(product.id, -1)}>
+                                    <Minus className="h-4 w-4" />
+                                </Button>
+                                <Input type="number" value={product.quantity} className="w-12 h-7 text-center bg-card" readOnly />
+                                <Button variant="outline" size="icon" className="h-7 w-7" onClick={() => handleQuantityChange(product.id, 1)} disabled={totalQuantity >= subscriptionProductCount}>
+                                    <Plus className="h-4 w-4" />
+                                </Button>
+                            </div>
+                        </div>
+                      ))}
+                    </div>
+                  </ScrollArea>
+                  {totalQuantity >= subscriptionProductCount && (
+                    <p className="text-xs text-muted-foreground text-center pt-2 border-t mt-auto">
+                        Your box is full. Remove an item to add a new one.
+                    </p>
+                  )}
+                </>
             ) : (
                 <div className="flex-grow flex items-center justify-center text-center">
                     <div className="text-muted-foreground">
