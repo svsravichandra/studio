@@ -1,3 +1,4 @@
+
 'use client';
 import { useEffect, useState, useMemo, useTransition, useCallback } from 'react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
@@ -8,6 +9,9 @@ import { type Order } from "@/lib/types";
 import { getAllOrders } from '../actions';
 import { Loader2 } from 'lucide-react';
 import { OrderActions } from './order-actions';
+import { Dialog } from "@/components/ui/dialog";
+import { OrderDetailModal } from './order-detail-modal';
+import { Button } from '@/components/ui/button';
 
 type OrderWithUser = Order & { user: { id: string; name: string; email: string } };
 
@@ -15,6 +19,7 @@ export default function AdminOrdersPage() {
     const [orders, setOrders] = useState<OrderWithUser[]>([]);
     const [statusFilter, setStatusFilter] = useState<string>('all');
     const [isLoading, setIsLoading] = useState(true);
+    const [selectedOrder, setSelectedOrder] = useState<OrderWithUser | null>(null);
     const [, startTransition] = useTransition();
 
     const fetchOrders = useCallback(() => {
@@ -22,7 +27,7 @@ export default function AdminOrdersPage() {
             setIsLoading(true);
             try {
                 const fetchedOrders = await getAllOrders();
-                setOrders(fetchedOrders);
+                setOrders(fetchedOrders ? JSON.parse(JSON.stringify(fetchedOrders)) : []);
             } catch (error) {
                 console.error("Failed to fetch orders:", error);
             } finally {
@@ -34,6 +39,19 @@ export default function AdminOrdersPage() {
     useEffect(() => {
         fetchOrders();
     }, [fetchOrders]);
+
+    // When an order is updated from the modal, this ensures the data in the modal is also refreshed
+    useEffect(() => {
+        if (selectedOrder) {
+            const updatedOrder = orders.find(o => o.id === selectedOrder.id);
+            if (updatedOrder) {
+                setSelectedOrder(updatedOrder);
+            } else {
+                // The order was deleted or changed in a way it's no longer in the list
+                setSelectedOrder(null);
+            }
+        }
+    }, [orders, selectedOrder]);
 
     const filteredOrders = useMemo(() => {
         if (statusFilter === 'all') {
@@ -92,7 +110,15 @@ export default function AdminOrdersPage() {
                         <TableBody>
                             {filteredOrders.map((order) => (
                                 <TableRow key={order.id}>
-                                    <TableCell className="font-medium truncate" style={{maxWidth: '100px'}}>{order.id}</TableCell>
+                                    <TableCell>
+                                        <Button
+                                            variant="link"
+                                            className="font-medium p-0 h-auto text-foreground hover:text-primary"
+                                            onClick={() => setSelectedOrder(order)}
+                                        >
+                                            <span className="truncate block" style={{maxWidth: '100px'}}>{order.id}</span>
+                                        </Button>
+                                    </TableCell>
                                     <TableCell>
                                         <div>{order.user.name}</div>
                                         <div className="text-xs text-muted-foreground">{order.user.email}</div>
@@ -110,6 +136,13 @@ export default function AdminOrdersPage() {
                         </TableBody>
                     </Table>
                 )}
+                 <Dialog open={!!selectedOrder} onOpenChange={(isOpen) => { if (!isOpen) setSelectedOrder(null); }}>
+                    <OrderDetailModal 
+                        order={selectedOrder} 
+                        onUpdate={fetchOrders} 
+                        onClose={() => setSelectedOrder(null)} 
+                    />
+                </Dialog>
             </CardContent>
         </Card>
     );
