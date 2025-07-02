@@ -10,16 +10,24 @@ import type { Product, Subscription, SubscriptionProduct } from '@/lib/types';
 import { createSubscription } from './actions';
 import { useAuth } from '@/context/auth-context';
 import { useToast } from '@/hooks/use-toast';
-import { Loader2, Plus, Minus, Package, CalendarDays } from 'lucide-react';
+import { Loader2, Plus, Minus, Package, CalendarDays, CreditCard, DollarSign } from 'lucide-react';
 import Image from 'next/image';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
+import { Separator } from '@/components/ui/separator';
 
 interface CreateSubscriptionModalProps {
   allProducts: Product[];
   onSuccess: () => void;
   onClose: () => void;
 }
+
+const mockPaymentMethods = [
+    { id: 'pm_1', type: 'Visa', last4: '4242', isDefault: true },
+    { id: 'pm_2', type: 'Mastercard', last4: '1234', isDefault: false },
+]
+const defaultPaymentMethod = mockPaymentMethods.find(p => p.isDefault)!;
+const subscriptionPrice = 20.00;
 
 export function CreateSubscriptionModal({ allProducts, onSuccess, onClose }: CreateSubscriptionModalProps) {
   const { user } = useAuth();
@@ -80,7 +88,12 @@ export function CreateSubscriptionModal({ allProducts, onSuccess, onClose }: Cre
 
     startTransition(async () => {
       try {
-        const result = await createSubscription({ userId: user.uid, items: selectedItems, frequency });
+        const result = await createSubscription({
+          userId: user.uid,
+          items: selectedItems,
+          frequency,
+          paymentMethodId: defaultPaymentMethod.id,
+        });
         if (result.success) {
           toast({ title: 'Success', description: result.message });
           onSuccess();
@@ -184,6 +197,34 @@ export function CreateSubscriptionModal({ allProducts, onSuccess, onClose }: Cre
             </div>
             </div>
         </div>
+      </div>
+
+      <Separator />
+
+      <div className="py-4 space-y-4">
+        <h4 className="font-headline text-base">Payment &amp; Authorization</h4>
+        <div className="p-4 border rounded-md bg-background flex flex-col gap-4">
+            <div className="flex justify-between items-center">
+                <div className="flex items-center gap-3">
+                    <CreditCard className="h-6 w-6 text-primary" />
+                    <div>
+                        <p className="font-medium">Default Payment Method</p>
+                        <p className="text-sm text-muted-foreground">{defaultPaymentMethod.type} ending in {defaultPaymentMethod.last4}</p>
+                    </div>
+                </div>
+                <Button variant="outline" size="sm" disabled>Change</Button>
+            </div>
+            <div className="flex justify-between items-center text-lg">
+                <div className="flex items-center gap-3">
+                    <DollarSign className="h-6 w-6 text-primary" />
+                    <p className="font-medium">Subscription Total</p>
+                </div>
+                <p className="font-headline text-primary">${subscriptionPrice.toFixed(2)} / {frequency === 'monthly' ? 'month' : '2 months'}</p>
+            </div>
+        </div>
+        <p className="text-xs text-muted-foreground">
+            By clicking "Start My Subscription", you agree to our terms and authorize us to charge your default payment method on a recurring basis. You can cancel anytime.
+        </p>
       </div>
 
       <DialogFooter>

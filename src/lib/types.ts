@@ -68,6 +68,7 @@ export interface Subscription {
     frequency: 'monthly' | 'bi-monthly';
     active: boolean;
     stripeSubscriptionId?: string;
+    paymentMethodId?: string;
     nextDelivery: string;
     createdAt: string;
 }

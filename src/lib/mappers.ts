@@ -120,6 +120,7 @@ export const mapSubscription = (doc: any): Subscription => {
     active: data.active ?? false,
     nextDelivery: toISOString(data.nextDelivery),
     createdAt: toISOString(data.createdAt),
+    paymentMethodId: data.paymentMethodId || '',
   };
 };
 

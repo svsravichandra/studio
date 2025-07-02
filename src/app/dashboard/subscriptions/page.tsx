@@ -11,7 +11,7 @@ import { useAuth } from "@/context/auth-context";
 import { useEffect, useState, useTransition, useCallback } from "react";
 import { doc, getDoc, setDoc, getDocs, collection, query, where, documentId, serverTimestamp } from "firebase/firestore";
 import { db } from "@/lib/firebase";
-import { Loader2 } from "lucide-react";
+import { CreditCard, Loader2 } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import {
   AlertDialog,
@@ -36,6 +36,11 @@ import { mapSubscription } from "@/lib/mappers";
 import { CreateSubscriptionModal } from "./create-subscription-modal";
 
 type SubscriptionDisplayProduct = Product & { quantity: number };
+
+const mockPaymentMethods = [
+    { id: 'pm_1', type: 'Visa', last4: '4242', isDefault: true },
+    { id: 'pm_2', type: 'Mastercard', last4: '1234', isDefault: false },
+]
 
 async function getSubscriptionProducts(items: SubscriptionProduct[]): Promise<SubscriptionDisplayProduct[]> {
     if (!db || !items || items.length === 0) return [];
@@ -236,6 +241,8 @@ export default function SubscriptionsPage() {
         );
     }
 
+    const activePaymentMethod = mockPaymentMethods.find(p => p.id === subscription.paymentMethodId) || mockPaymentMethods.find(p => p.isDefault);
+
   return (
     <Dialog open={isManageOpen} onOpenChange={setIsManageOpen}>
         <Card className="bg-card border-border/50">
@@ -275,6 +282,14 @@ export default function SubscriptionsPage() {
                             <span className="text-muted-foreground">Next Delivery:</span>
                             <span>{new Date(subscription.nextDelivery).toLocaleDateString()}</span>
                         </div>
+                         <div className="flex justify-between items-center">
+                            <span className="text-muted-foreground flex items-center gap-2"><CreditCard className="h-4 w-4" /> Billed to:</span>
+                            {activePaymentMethod ? (
+                                <span className="font-medium">{activePaymentMethod.type} ending in {activePaymentMethod.last4}</span>
+                            ) : (
+                                <span className="text-muted-foreground">No payment method</span>
+                            )}
+                        </div>
                     </div>
                 </div>
             </div>
@@ -285,6 +300,13 @@ export default function SubscriptionsPage() {
                 <h4 className="font-headline uppercase mb-4">Manage Plan</h4>
                 <div className="flex flex-wrap gap-2">
                     <Button onClick={() => setIsManageOpen(true)} disabled={isPending || !subscription.active}>Manage Products</Button>
+                    <Button 
+                        variant="secondary" 
+                        onClick={() => toast({ title: "Coming Soon!", description: "You'll be able to manage your payment method here in the future."})} 
+                        disabled={isPending || !subscription.active}
+                    >
+                        Change Payment
+                    </Button>
                     <Button variant="secondary" onClick={handleFrequencyChange} disabled={isPending || !subscription.active}>
                         {isPending && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
                         Switch to {subscription.frequency === 'monthly' ? 'Bi-Monthly' : 'Monthly'}

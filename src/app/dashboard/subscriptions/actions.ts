@@ -6,7 +6,7 @@ import type { Subscription, SubscriptionProduct } from '@/lib/types';
 import { doc, updateDoc, deleteDoc, setDoc, serverTimestamp } from 'firebase/firestore';
 import { revalidatePath } from 'next/cache';
 
-export async function createSubscription({ userId, items, frequency }: { userId: string; items: SubscriptionProduct[]; frequency: Subscription['frequency'] }) {
+export async function createSubscription({ userId, items, frequency, paymentMethodId }: { userId: string; items: SubscriptionProduct[]; frequency: Subscription['frequency'], paymentMethodId: string }) {
     if (!db) throw new Error("DB connection failed");
 
     const nextDeliveryDate = new Date();
@@ -19,6 +19,7 @@ export async function createSubscription({ userId, items, frequency }: { userId:
         nextDelivery: nextDeliveryDate.toISOString(),
         items: items,
         createdAt: serverTimestamp(),
+        paymentMethodId: paymentMethodId,
     };
 
     const subRef = doc(db, 'subscriptions', userId);
