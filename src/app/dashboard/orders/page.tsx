@@ -1,3 +1,4 @@
+
 'use client';
 
 import { Button } from "@/components/ui/button";
@@ -10,11 +11,14 @@ import { useAuth } from "@/context/auth-context";
 import { useEffect, useState } from "react";
 import { collection, getDocs, orderBy, query, Timestamp, where } from "firebase/firestore";
 import { db } from "@/lib/firebase";
+import { TrackingInfoModal } from './tracking-info-modal';
 
 export default function OrdersPage() {
   const { user } = useAuth();
   const [orders, setOrders] = useState<Order[]>([]);
   const [isLoading, setIsLoading] = useState(true);
+  const [selectedOrder, setSelectedOrder] = useState<Order | null>(null);
+  const [isTrackingModalOpen, setIsTrackingModalOpen] = useState(false);
 
   useEffect(() => {
     const fetchOrders = async () => {
@@ -37,14 +41,15 @@ export default function OrdersPage() {
                 total: data.total,
                 status: data.status,
                 shippingAddress: data.shippingAddress,
-                paymentIntentId: data.paymentIntentId,
+                trackingNumber: data.trackingNumber || '',
+                carrier: data.carrier || '',
                 createdAt: (createdAtTimestamp && typeof createdAtTimestamp.toDate === 'function')
                   ? createdAtTimestamp.toDate().toISOString()
                   : new Date().toISOString(),
             } as Order;
         });
 
-        setOrders(fetchedOrders);
+        setOrders(JSON.parse(JSON.stringify(fetchedOrders)));
       } catch (error) {
         console.error("Error fetching orders: ", error);
       } finally {
@@ -62,6 +67,11 @@ export default function OrdersPage() {
       case 'cancelled': return 'destructive';
       default: return 'outline';
     }
+  }
+
+  const handleTrackClick = (order: Order) => {
+    setSelectedOrder(order);
+    setIsTrackingModalOpen(true);
   }
 
   if (isLoading) {
@@ -110,14 +120,14 @@ export default function OrdersPage() {
                     </TableCell>
                     <TableCell className="text-right">${order.total.toFixed(2)}</TableCell>
                     <TableCell className="flex justify-center items-center gap-2">
-                        <Button variant="outline" size="sm" title="Track Order">
-                        <Truck className="h-4 w-4" />
+                        <Button variant="outline" size="sm" title="Track Order" onClick={() => handleTrackClick(order)} disabled={!order.trackingNumber || !order.carrier}>
+                          <Truck className="h-4 w-4" />
                         </Button>
                         <Button variant="outline" size="sm" title="Reorder">
-                        <Repeat className="h-4 w-4" />
+                          <Repeat className="h-4 w-4" />
                         </Button>
                         <Button variant="outline" size="sm" title="Request Return">
-                        <RefreshCcw className="h-4 w-4" />
+                          <RefreshCcw className="h-4 w-4" />
                         </Button>
                     </TableCell>
                     </TableRow>
@@ -126,6 +136,11 @@ export default function OrdersPage() {
             </Table>
           )}
         </CardContent>
+        <TrackingInfoModal
+            order={selectedOrder}
+            isOpen={isTrackingModalOpen}
+            onClose={() => setIsTrackingModalOpen(false)}
+        />
       </Card>
   );
 }
