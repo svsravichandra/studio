@@ -124,7 +124,10 @@ export default function OrdersPage() {
                 title: "Return Request Submitted",
                 description: result.message
             });
-            if (user) fetchReturnRequests(user.uid);
+            if (user) {
+                fetchReturnRequests(user.uid);
+                fetchOrders(); // Re-fetch orders to show updated status
+            }
         } else {
             throw new Error("Failed to submit return request");
         }
@@ -145,6 +148,9 @@ export default function OrdersPage() {
       case 'delivered': return 'secondary';
       case 'processing': return 'outline';
       case 'cancelled': return 'destructive';
+      case 'return started': return 'default';
+      case 'return completed': return 'secondary';
+      case 'refunded': return 'secondary';
       default: return 'outline';
     }
   }

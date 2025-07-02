@@ -10,7 +10,7 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import { Button } from "@/components/ui/button";
-import { MoreHorizontal, CheckCircle, XCircle, PackageCheck, Undo2 } from "lucide-react";
+import { MoreHorizontal, CheckCircle, XCircle, PackageCheck, Undo2, DollarSign } from "lucide-react";
 import { type ReturnRequest } from "@/lib/types";
 import { updateReturnStatus } from "@/app/admin/actions";
 import { useToast } from "@/hooks/use-toast";
@@ -64,12 +64,20 @@ export function ReturnActions({ request, onUpdate }: { request: ReturnRequest, o
                     </DropdownMenuItem>
                 </>
             );
+        case 'completed':
+            return (
+                <DropdownMenuItem onClick={() => handleStatusChange('refunded')}>
+                    <DollarSign className="mr-2 h-4 w-4" />
+                    Mark as Refunded
+                </DropdownMenuItem>
+            );
         default:
             return <DropdownMenuItem disabled>No actions available</DropdownMenuItem>;
     }
   }
 
-  if (request.status === 'completed' || request.status === 'rejected') {
+  // Hide actions for terminal states like 'rejected' and 'refunded'
+  if (request.status === 'rejected' || request.status === 'refunded') {
     return <span className="text-xs text-muted-foreground capitalize">{request.status}</span>;
   }
 

@@ -2,7 +2,7 @@
 'use server';
 
 import { db } from '@/lib/firebase';
-import { collection, doc, getDocs, setDoc, serverTimestamp, query, where } from 'firebase/firestore';
+import { collection, doc, getDocs, setDoc, serverTimestamp, query, where, updateDoc } from 'firebase/firestore';
 import type { Order } from '@/lib/types';
 import { revalidatePath } from 'next/cache';
 
@@ -23,8 +23,15 @@ export async function createReturnRequest(order: Order, userName: string, userEm
     };
 
     await setDoc(returnRef, newReturnRequest);
+    
+    // Also update the corresponding order's status to 'return started'
+    const orderRef = doc(db, 'orders', order.id);
+    await updateDoc(orderRef, { status: 'return started' });
+
+
     revalidatePath('/admin/returns');
     revalidatePath('/dashboard/orders');
+    revalidatePath('/admin/orders'); // Revalidate admin orders page as well
 
     return { success: true, message: `Return request for order #${order.id} has been submitted.` };
 }

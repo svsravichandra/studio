@@ -165,6 +165,29 @@ export async function updateReturnStatus({ returnId, status }: { returnId: strin
     if (!db) throw new Error("DB connection failed");
     const returnRef = doc(db, 'returns', returnId);
     await updateDoc(returnRef, { status });
+
+    // Also update the corresponding order's status
+    const orderRef = doc(db, 'orders', returnId); // returnId is the same as orderId
+    let orderStatus: Order['status'] | null = null;
+    switch (status) {
+        case 'approved':
+            orderStatus = 'return started';
+            break;
+        case 'completed':
+            orderStatus = 'return completed';
+            break;
+        case 'refunded':
+            orderStatus = 'refunded';
+            break;
+        // Not handling 'rejected' or 'pending' to avoid complexity,
+        // as the original state isn't tracked.
+    }
+
+    if (orderStatus) {
+        await updateDoc(orderRef, { status: orderStatus });
+        revalidatePath('/admin/orders');
+    }
+
     revalidatePath('/admin/returns');
     return { success: true, message: `Return request ${returnId} updated to ${status}` };
 }

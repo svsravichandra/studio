@@ -103,6 +103,9 @@ export function OrderDetailModal({ order, onUpdate }: OrderDetailModalProps) {
       case 'delivered': return 'secondary';
       case 'processing': return 'outline';
       case 'cancelled': return 'destructive';
+      case 'return started': return 'default';
+      case 'return completed': return 'secondary';
+      case 'refunded': return 'secondary';
       default: return 'outline';
     }
   };

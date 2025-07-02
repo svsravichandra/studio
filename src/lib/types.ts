@@ -48,7 +48,7 @@ export interface Order {
     userId: string;
     items: OrderProduct[];
     total: number;
-    status: 'processing' | 'shipped' | 'delivered' | 'cancelled';
+    status: 'processing' | 'shipped' | 'delivered' | 'cancelled' | 'return started' | 'return completed' | 'refunded';
     shippingAddress: Address;
     trackingNumber?: string;
     carrier?: string;
@@ -81,6 +81,6 @@ export interface ReturnRequest {
     userEmail: string;
     orderTotal: number;
     orderDate: string;
-    status: 'pending' | 'approved' | 'rejected' | 'completed';
+    status: 'pending' | 'approved' | 'rejected' | 'completed' | 'refunded';
     requestedAt: string;
 }
