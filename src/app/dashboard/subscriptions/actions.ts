@@ -62,3 +62,11 @@ export async function cancelSubscription({ userId }: { userId: string }) {
     revalidatePath('/dashboard/subscriptions');
     return { success: true, message: 'Your subscription has been cancelled.' };
 }
+
+export async function updateSubscriptionPaymentMethod({ userId, paymentMethodId }: { userId: string; paymentMethodId: string }) {
+    if (!db) throw new Error("DB connection failed");
+    const subRef = doc(db, 'subscriptions', userId);
+    await updateDoc(subRef, { paymentMethodId });
+    revalidatePath('/dashboard/subscriptions');
+    return { success: true, message: 'Your payment method has been updated.' };
+}

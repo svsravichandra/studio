@@ -34,6 +34,7 @@ import { ManageSubscriptionProducts } from './manage-products';
 import { getAllProducts as fetchAllStoreProducts } from '@/app/admin/actions';
 import { mapSubscription } from "@/lib/mappers";
 import { CreateSubscriptionModal } from "./create-subscription-modal";
+import { ChangePaymentModal } from "./change-payment-modal";
 
 type SubscriptionDisplayProduct = Product & { quantity: number };
 
@@ -101,6 +102,7 @@ export default function SubscriptionsPage() {
     const [isLoading, setIsLoading] = useState(true);
     const [isManageOpen, setIsManageOpen] = useState(false);
     const [isCreateModalOpen, setIsCreateModalOpen] = useState(false);
+    const [isChangePaymentOpen, setIsChangePaymentOpen] = useState(false);
     const [isPending, startTransition] = useTransition();
 
     const fetchSubscriptionData = useCallback(async () => {
@@ -198,6 +200,11 @@ export default function SubscriptionsPage() {
         setIsCreateModalOpen(false);
         fetchSubscriptionData();
     };
+    
+    const handleChangePaymentSuccess = () => {
+        setIsChangePaymentOpen(false);
+        fetchSubscriptionData();
+    };
 
 
     if (isLoading) {
@@ -244,109 +251,120 @@ export default function SubscriptionsPage() {
     const activePaymentMethod = mockPaymentMethods.find(p => p.id === subscription.paymentMethodId) || mockPaymentMethods.find(p => p.isDefault);
 
   return (
-    <Dialog open={isManageOpen} onOpenChange={setIsManageOpen}>
-        <Card className="bg-card border-border/50">
-        <CardHeader>
-            <div className="flex justify-between items-start">
-                <div>
-                    <CardTitle className="font-headline uppercase text-2xl">Gritbox Subscription</CardTitle>
-                    <CardDescription>Manage your monthly soap delivery.</CardDescription>
+    <>
+        <Dialog open={isManageOpen} onOpenChange={setIsManageOpen}>
+            <Card className="bg-card border-border/50">
+            <CardHeader>
+                <div className="flex justify-between items-start">
+                    <div>
+                        <CardTitle className="font-headline uppercase text-2xl">Gritbox Subscription</CardTitle>
+                        <CardDescription>Manage your monthly soap delivery.</CardDescription>
+                    </div>
+                    <Badge variant={subscription.active ? 'default' : 'secondary'} className="text-base">
+                        {subscription.active ? 'Active' : 'Paused'}
+                    </Badge>
                 </div>
-                <Badge variant={subscription.active ? 'default' : 'secondary'} className="text-base">
-                    {subscription.active ? 'Active' : 'Paused'}
-                </Badge>
-            </div>
-        </CardHeader>
-        <CardContent>
-            <div className="grid md:grid-cols-2 gap-6 mb-6">
-                <div>
-                    <h4 className="font-headline uppercase">Current Products</h4>
-                    <div className="mt-2 space-y-3">
-                        {products.length > 0 ? products.map(item => (
-                            <div key={item.id} className="flex items-center gap-3">
-                                <Image src={item.imageUrl} alt={item.name} width={50} height={50} className="rounded-md object-cover" data-ai-hint={item.tags.join(' ')}/>
-                                <p className="flex-grow">{item.name} <span className="text-sm text-muted-foreground">x{item.quantity}</span></p>
-                                <p className="text-muted-foreground">${(item.price * item.quantity).toFixed(2)}</p>
+            </CardHeader>
+            <CardContent>
+                <div className="grid md:grid-cols-2 gap-6 mb-6">
+                    <div>
+                        <h4 className="font-headline uppercase">Current Products</h4>
+                        <div className="mt-2 space-y-3">
+                            {products.length > 0 ? products.map(item => (
+                                <div key={item.id} className="flex items-center gap-3">
+                                    <Image src={item.imageUrl} alt={item.name} width={50} height={50} className="rounded-md object-cover" data-ai-hint={item.tags.join(' ')}/>
+                                    <p className="flex-grow">{item.name} <span className="text-sm text-muted-foreground">x{item.quantity}</span></p>
+                                    <p className="text-muted-foreground">${(item.price * item.quantity).toFixed(2)}</p>
+                                </div>
+                            )) : <p className="text-sm text-muted-foreground">No products in your subscription.</p>}
+                        </div>
+                    </div>
+                    <div>
+                        <h4 className="font-headline uppercase">Details</h4>
+                        <div className="mt-2 space-y-2 text-sm">
+                            <div className="flex justify-between">
+                                <span className="text-muted-foreground">Frequency:</span>
+                                <span className="capitalize">{subscription.frequency}</span>
                             </div>
-                        )) : <p className="text-sm text-muted-foreground">No products in your subscription.</p>}
-                    </div>
-                </div>
-                <div>
-                    <h4 className="font-headline uppercase">Details</h4>
-                    <div className="mt-2 space-y-2 text-sm">
-                        <div className="flex justify-between">
-                            <span className="text-muted-foreground">Frequency:</span>
-                            <span className="capitalize">{subscription.frequency}</span>
-                        </div>
-                        <div className="flex justify-between">
-                            <span className="text-muted-foreground">Next Delivery:</span>
-                            <span>{new Date(subscription.nextDelivery).toLocaleDateString()}</span>
-                        </div>
-                         <div className="flex justify-between items-center">
-                            <span className="text-muted-foreground flex items-center gap-2"><CreditCard className="h-4 w-4" /> Billed to:</span>
-                            {activePaymentMethod ? (
-                                <span className="font-medium">{activePaymentMethod.type} ending in {activePaymentMethod.last4}</span>
-                            ) : (
-                                <span className="text-muted-foreground">No payment method</span>
-                            )}
+                            <div className="flex justify-between">
+                                <span className="text-muted-foreground">Next Delivery:</span>
+                                <span>{new Date(subscription.nextDelivery).toLocaleDateString()}</span>
+                            </div>
+                             <div className="flex justify-between items-center">
+                                <span className="text-muted-foreground flex items-center gap-2"><CreditCard className="h-4 w-4" /> Billed to:</span>
+                                {activePaymentMethod ? (
+                                    <span className="font-medium">{activePaymentMethod.type} ending in {activePaymentMethod.last4}</span>
+                                ) : (
+                                    <span className="text-muted-foreground">No payment method</span>
+                                )}
+                            </div>
                         </div>
                     </div>
                 </div>
-            </div>
-            
-            <Separator className="my-6 bg-border/50" />
+                
+                <Separator className="my-6 bg-border/50" />
 
-            <div>
-                <h4 className="font-headline uppercase mb-4">Manage Plan</h4>
-                <div className="flex flex-wrap gap-2">
-                    <Button onClick={() => setIsManageOpen(true)} disabled={isPending || !subscription.active}>Manage Products</Button>
-                    <Button 
-                        variant="secondary" 
-                        onClick={() => toast({ title: "Coming Soon!", description: "You'll be able to manage your payment method here in the future."})} 
-                        disabled={isPending || !subscription.active}
-                    >
-                        Change Payment
-                    </Button>
-                    <Button variant="secondary" onClick={handleFrequencyChange} disabled={isPending || !subscription.active}>
-                        {isPending && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
-                        Switch to {subscription.frequency === 'monthly' ? 'Bi-Monthly' : 'Monthly'}
-                    </Button>
-                    <Button variant="outline" onClick={handleStatusToggle} disabled={isPending}>
-                        {isPending && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
-                        {subscription.active ? 'Pause Subscription' : 'Resume Subscription'}
-                    </Button>
-                    <AlertDialog>
-                        <AlertDialogTrigger asChild>
-                            <Button variant="destructive" disabled={isPending}>Cancel Plan</Button>
-                        </AlertDialogTrigger>
-                        <AlertDialogContent>
-                            <AlertDialogHeader>
-                                <AlertDialogTitle>Are you absolutely sure?</AlertDialogTitle>
-                                <AlertDialogDescription>
-                                    This action cannot be undone. This will permanently cancel your Gritbox subscription.
-                                </AlertDialogDescription>
-                            </AlertDialogHeader>
-                            <AlertDialogFooter>
-                                <AlertDialogCancel>Keep My Subscription</AlertDialogCancel>
-                                <AlertDialogAction onClick={handleCancel} className="bg-destructive hover:bg-destructive/90">
-                                    Yes, Cancel My Plan
-                                </AlertDialogAction>
-                            </AlertDialogFooter>
-                        </AlertDialogContent>
-                    </AlertDialog>
+                <div>
+                    <h4 className="font-headline uppercase mb-4">Manage Plan</h4>
+                    <div className="flex flex-wrap gap-2">
+                        <Button onClick={() => setIsManageOpen(true)} disabled={isPending || !subscription.active}>Manage Products</Button>
+                        <Button 
+                            variant="secondary" 
+                            onClick={() => setIsChangePaymentOpen(true)} 
+                            disabled={isPending || !subscription.active}
+                        >
+                            Change Payment
+                        </Button>
+                        <Button variant="secondary" onClick={handleFrequencyChange} disabled={isPending || !subscription.active}>
+                            {isPending && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+                            Switch to {subscription.frequency === 'monthly' ? 'Bi-Monthly' : 'Monthly'}
+                        </Button>
+                        <Button variant="outline" onClick={handleStatusToggle} disabled={isPending}>
+                            {isPending && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+                            {subscription.active ? 'Pause Subscription' : 'Resume Subscription'}
+                        </Button>
+                        <AlertDialog>
+                            <AlertDialogTrigger asChild>
+                                <Button variant="destructive" disabled={isPending}>Cancel Plan</Button>
+                            </AlertDialogTrigger>
+                            <AlertDialogContent>
+                                <AlertDialogHeader>
+                                    <AlertDialogTitle>Are you absolutely sure?</AlertDialogTitle>
+                                    <AlertDialogDescription>
+                                        This action cannot be undone. This will permanently cancel your Gritbox subscription.
+                                    </AlertDialogDescription>
+                                </AlertDialogHeader>
+                                <AlertDialogFooter>
+                                    <AlertDialogCancel>Keep My Subscription</AlertDialogCancel>
+                                    <AlertDialogAction onClick={handleCancel} className="bg-destructive hover:bg-destructive/90">
+                                        Yes, Cancel My Plan
+                                    </AlertDialogAction>
+                                </AlertDialogFooter>
+                            </AlertDialogContent>
+                        </AlertDialog>
+                    </div>
                 </div>
-            </div>
-        </CardContent>
-        </Card>
-        
-        {subscription && allProducts.length > 0 && (
-            <ManageSubscriptionProducts
-                allProducts={allProducts}
-                currentItems={subscription.items}
-                onSuccess={handleManageSuccess}
-                onClose={() => setIsManageOpen(false)}
-            />
+            </CardContent>
+            </Card>
+            
+            {subscription && allProducts.length > 0 && (
+                <ManageSubscriptionProducts
+                    allProducts={allProducts}
+                    currentItems={subscription.items}
+                    onSuccess={handleManageSuccess}
+                    onClose={() => setIsManageOpen(false)}
+                />
+            )}
+        </Dialog>
+        {subscription && (
+             <Dialog open={isChangePaymentOpen} onOpenChange={setIsChangePaymentOpen}>
+                <ChangePaymentModal
+                    subscription={subscription}
+                    onSuccess={handleChangePaymentSuccess}
+                    onClose={() => setIsChangePaymentOpen(false)}
+                />
+            </Dialog>
         )}
-    </Dialog>
+    </>
   );
 }
