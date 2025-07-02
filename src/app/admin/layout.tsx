@@ -2,7 +2,7 @@
 
 import Link from 'next/link';
 import { usePathname, useRouter } from 'next/navigation';
-import { Fingerprint, Package, ShoppingCart, Users } from 'lucide-react';
+import { Fingerprint, Package, ShoppingCart, Users, Undo2 } from 'lucide-react';
 import { useAuth } from '@/context/auth-context';
 import { Button } from '@/components/ui/button';
 import { ReactNode, useEffect } from 'react';
@@ -12,6 +12,7 @@ const adminNavItems = [
   { href: '/admin/orders', label: 'Orders', icon: ShoppingCart },
   { href: '/admin/products', label: 'Products', icon: Package },
   { href: '/admin/users', label: 'Users', icon: Users },
+  { href: '/admin/returns', label: 'Returns', icon: Undo2 },
 ];
 
 export default function AdminLayout({ children }: { children: ReactNode }) {

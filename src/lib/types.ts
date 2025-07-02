@@ -71,3 +71,15 @@ export interface Subscription {
     nextDelivery: string;
     createdAt: string;
 }
+
+export interface ReturnRequest {
+    id: string; // Same as orderId
+    orderId: string;
+    userId: string;
+    userName: string;
+    userEmail: string;
+    orderTotal: number;
+    orderDate: string;
+    status: 'pending' | 'approved' | 'rejected' | 'completed';
+    requestedAt: string;
+}

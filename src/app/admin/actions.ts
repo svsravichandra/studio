@@ -2,7 +2,7 @@
 'use server';
 
 import { db } from '@/lib/firebase';
-import { Product, Order, UserProfile, Address } from '@/lib/types';
+import { Product, Order, UserProfile, Address, ReturnRequest } from '@/lib/types';
 import { collection, collectionGroup, getDocs, doc, updateDoc, addDoc, deleteDoc, setDoc, Timestamp, query, where, documentId, orderBy, writeBatch } from 'firebase/firestore';
 import { revalidatePath } from 'next/cache';
 
@@ -168,4 +168,44 @@ export async function updateUserRole({ userId, role }: { userId: string, role: s
     await updateDoc(userRef, { role });
     revalidatePath('/admin/users');
     return { success: true, message: `User ${userId} role updated to ${role}.` };
+}
+
+// Return Requests
+export async function getAllReturnRequests(): Promise<ReturnRequest[]> {
+    if (!db) throw new Error("DB connection failed");
+    const returnsRef = collection(db, 'returns');
+    const returnsQuery = query(returnsRef, orderBy('requestedAt', 'desc'));
+    const returnsSnapshot = await getDocs(returnsQuery);
+
+    if (returnsSnapshot.empty) {
+        return [];
+    }
+
+    const returnsData = returnsSnapshot.docs.map(docSnapshot => {
+        const data = docSnapshot.data();
+        const requestedAtTimestamp = data.requestedAt as Timestamp;
+        return {
+            id: docSnapshot.id,
+            orderId: data.orderId,
+            userId: data.userId,
+            status: data.status,
+            requestedAt: (requestedAtTimestamp && typeof requestedAtTimestamp.toDate === 'function')
+                ? requestedAtTimestamp.toDate().toISOString()
+                : new Date().toISOString(),
+            orderTotal: data.orderTotal,
+            orderDate: data.orderDate,
+            userName: data.userName,
+            userEmail: data.userEmail,
+        } as ReturnRequest;
+    });
+
+    return JSON.parse(JSON.stringify(returnsData));
+}
+
+export async function updateReturnStatus({ returnId, status }: { returnId: string, status: ReturnRequest['status'] }) {
+    if (!db) throw new Error("DB connection failed");
+    const returnRef = doc(db, 'returns', returnId);
+    await updateDoc(returnRef, { status });
+    revalidatePath('/admin/returns');
+    return { success: true, message: `Return request ${returnId} updated to ${status}` };
 }
