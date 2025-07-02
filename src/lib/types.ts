@@ -15,7 +15,7 @@ export interface UserProfile {
     phone?: string;
     address?: Address;
     role: 'customer' | 'admin';
-    createdAt: any; // Can be a server timestamp
+    createdAt: string; 
 }
 
 export interface Product {
@@ -50,8 +50,9 @@ export interface Order {
     total: number;
     status: 'processing' | 'shipped' | 'delivered' | 'cancelled';
     shippingAddress: Address;
+    trackingNumber?: string;
     paymentIntentId?: string;
-    createdAt: any; // Can be a server timestamp
+    createdAt: string; 
 }
 
 export interface SubscriptionProduct {
@@ -67,5 +68,5 @@ export interface Subscription {
     active: boolean;
     stripeSubscriptionId?: string;
     nextDelivery: string;
-    createdAt: any; // Can be a server timestamp
+    createdAt: string;
 }

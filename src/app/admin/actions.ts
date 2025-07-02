@@ -47,7 +47,7 @@ export async function getAllOrders(): Promise<(Order & { user: { id: string, nam
     }
 
     // 4. Combine order data with user data
-    const orders = ordersSnapshot.docs.map(docSnapshot => {
+    const ordersData = ordersSnapshot.docs.map(docSnapshot => {
         const data = docSnapshot.data();
         const userId = data.userId;
         const createdAtTimestamp = data.createdAt as Timestamp;
@@ -61,6 +61,7 @@ export async function getAllOrders(): Promise<(Order & { user: { id: string, nam
             total: data.total,
             items: data.items,
             shippingAddress: data.shippingAddress,
+            trackingNumber: data.trackingNumber || '',
             user: {
                 id: userId,
                 name: users[userId]?.name || 'Unknown User',
@@ -69,7 +70,7 @@ export async function getAllOrders(): Promise<(Order & { user: { id: string, nam
         } as Order & { user: { id: string, name: string, email: string } };
     });
 
-    return orders;
+    return JSON.parse(JSON.stringify(ordersData));
 }
 
 
@@ -81,12 +82,21 @@ export async function updateOrderStatus({ orderId, status }: { orderId: string, 
     return { success: true, message: `Order ${orderId} updated to ${status}` };
 }
 
+export async function updateOrderTracking({ orderId, trackingNumber }: { orderId: string, trackingNumber: string }) {
+    if (!db) throw new Error("DB connection failed");
+    const orderRef = doc(db, 'orders', orderId);
+    await updateDoc(orderRef, { trackingNumber });
+    revalidatePath('/admin/orders');
+    return { success: true, message: `Tracking for order ${orderId} updated.` };
+}
+
 
 // Products
 export async function getAllProducts(): Promise<Product[]> {
     if (!db) throw new Error("DB connection failed");
     const productsSnapshot = await getDocs(collection(db, 'products'));
-    return productsSnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as Product));
+    const products = productsSnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as Product));
+    return JSON.parse(JSON.stringify(products));
 }
 
 export async function upsertProduct(product: Partial<Product>) {
@@ -133,7 +143,7 @@ export async function deleteProduct(productId: string) {
 export async function getAllUsers(): Promise<UserProfile[]> {
     if (!db) throw new Error("DB connection failed");
     const usersSnapshot = await getDocs(collection(db, 'users'));
-    return usersSnapshot.docs.map(doc => {
+    const users = usersSnapshot.docs.map(doc => {
         const data = doc.data();
         const createdAtTimestamp = data.createdAt as Timestamp;
         return {
@@ -148,6 +158,7 @@ export async function getAllUsers(): Promise<UserProfile[]> {
                 : new Date().toISOString(),
         };
     });
+    return JSON.parse(JSON.stringify(users));
 }
 
 export async function updateUserRole({ userId, role }: { userId: string, role: string }) {

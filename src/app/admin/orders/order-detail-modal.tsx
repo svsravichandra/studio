@@ -14,11 +14,11 @@ import { Label } from '@/components/ui/label';
 import { Separator } from '@/components/ui/separator';
 import { Badge } from '@/components/ui/badge';
 import type { Order } from '@/lib/types';
-import { Printer, PackageCheck, Ban, Truck } from 'lucide-react';
+import { Printer, PackageCheck, Ban, Truck, Loader2 } from 'lucide-react';
 import Image from 'next/image';
-import { useTransition } from 'react';
+import { useState, useTransition, useEffect } from 'react';
 import { useToast } from '@/hooks/use-toast';
-import { updateOrderStatus } from '@/app/admin/actions';
+import { updateOrderStatus, updateOrderTracking } from '@/app/admin/actions';
 
 type OrderWithUser = Order & { user: { id: string; name: string; email: string } };
 
@@ -31,7 +31,17 @@ interface OrderDetailModalProps {
 export function OrderDetailModal({ order, onUpdate }: OrderDetailModalProps) {
   const { toast } = useToast();
   const [isPending, startTransition] = useTransition();
+  const [isUpdatingTracking, startTrackingUpdate] = useTransition();
+  const [trackingInput, setTrackingInput] = useState('');
     
+  useEffect(() => {
+    if (order?.trackingNumber) {
+        setTrackingInput(order.trackingNumber);
+    } else {
+        setTrackingInput('');
+    }
+  }, [order]);
+
   if (!order) return null;
   
   const handleStatusChange = (status: Order['status']) => {
@@ -49,6 +59,27 @@ export function OrderDetailModal({ order, onUpdate }: OrderDetailModalProps) {
       }
     });
   };
+
+  const handleTrackingUpdate = () => {
+    if (!trackingInput.trim()) {
+        toast({ title: "Info", description: "Tracking number cannot be empty."});
+        return;
+    }
+    startTrackingUpdate(async () => {
+        try {
+            const result = await updateOrderTracking({ orderId: order.id, trackingNumber: trackingInput });
+            if (result.success) {
+                toast({ title: "Success", description: result.message });
+                onUpdate();
+            } else {
+                throw new Error("Failed to update tracking number");
+            }
+        } catch (error) {
+            toast({ title: "Error", description: "Could not update tracking number.", variant: "destructive" });
+        }
+    });
+  };
+
 
   const getStatusVariant = (status: Order['status']) => {
     switch (status) {
@@ -120,9 +151,17 @@ export function OrderDetailModal({ order, onUpdate }: OrderDetailModalProps) {
                     <div className="flex items-end gap-2">
                         <div className="flex-grow">
                             <Label htmlFor="tracking-number" className="sr-only">Tracking Number</Label>
-                            <Input id="tracking-number" placeholder="Enter tracking number" disabled={isPending} className="bg-background"/>
+                            <Input 
+                                id="tracking-number" 
+                                placeholder="Enter tracking number" 
+                                value={trackingInput}
+                                onChange={(e) => setTrackingInput(e.target.value)}
+                                disabled={isUpdatingTracking} 
+                                className="bg-background"/>
                         </div>
-                        <Button disabled={isPending}>Update</Button>
+                        <Button onClick={handleTrackingUpdate} disabled={isUpdatingTracking}>
+                            {isUpdatingTracking ? <Loader2 className="animate-spin" /> : 'Update'}
+                        </Button>
                     </div>
                 </div>
             </div>
