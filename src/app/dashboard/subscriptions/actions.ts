@@ -3,8 +3,30 @@
 
 import { db } from '@/lib/firebase';
 import type { Subscription, SubscriptionProduct } from '@/lib/types';
-import { doc, updateDoc, deleteDoc } from 'firebase/firestore';
+import { doc, updateDoc, deleteDoc, setDoc, serverTimestamp } from 'firebase/firestore';
 import { revalidatePath } from 'next/cache';
+
+export async function createSubscription({ userId, items, frequency }: { userId: string; items: SubscriptionProduct[]; frequency: Subscription['frequency'] }) {
+    if (!db) throw new Error("DB connection failed");
+
+    const nextDeliveryDate = new Date();
+    nextDeliveryDate.setMonth(nextDeliveryDate.getMonth() + 1);
+
+    const newSubscriptionData = {
+        userId: userId,
+        active: true,
+        frequency: frequency,
+        nextDelivery: nextDeliveryDate.toISOString(),
+        items: items,
+        createdAt: serverTimestamp(),
+    };
+
+    const subRef = doc(db, 'subscriptions', userId);
+    await setDoc(subRef, newSubscriptionData);
+    revalidatePath('/dashboard/subscriptions');
+    return { success: true, message: 'Your Gritbox subscription has been started!' };
+}
+
 
 export async function updateSubscriptionStatus({ userId, active }: { userId: string; active: boolean }) {
     if (!db) throw new Error("DB connection failed");

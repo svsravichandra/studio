@@ -33,6 +33,7 @@ import { Dialog } from '@/components/ui/dialog';
 import { ManageSubscriptionProducts } from './manage-products';
 import { getAllProducts as fetchAllStoreProducts } from '@/app/admin/actions';
 import { mapSubscription } from "@/lib/mappers";
+import { CreateSubscriptionModal } from "./create-subscription-modal";
 
 type SubscriptionDisplayProduct = Product & { quantity: number };
 
@@ -93,8 +94,8 @@ export default function SubscriptionsPage() {
     const [products, setProducts] = useState<SubscriptionDisplayProduct[]>([]);
     const [allProducts, setAllProducts] = useState<Product[]>([]);
     const [isLoading, setIsLoading] = useState(true);
-    const [isCreating, setIsCreating] = useState(false);
     const [isManageOpen, setIsManageOpen] = useState(false);
+    const [isCreateModalOpen, setIsCreateModalOpen] = useState(false);
     const [isPending, startTransition] = useTransition();
 
     const fetchSubscriptionData = useCallback(async () => {
@@ -140,51 +141,6 @@ export default function SubscriptionsPage() {
             fetchSubscriptionData();
         }
     }, [user, fetchSubscriptionData]);
-
-    const createDefaultSubscription = async () => {
-        if (!user || !db) return;
-        setIsCreating(true);
-
-        const nextDeliveryDate = new Date();
-        nextDeliveryDate.setMonth(nextDeliveryDate.getMonth() + 1);
-
-        const defaultItems: SubscriptionProduct[] = [
-            { productId: 'timber-trail', quantity: 1 },
-            { productId: 'whiskey-oak', quantity: 1 },
-            { productId: 'arctic-steel', quantity: 1 },
-        ];
-
-        const defaultSubscription: Omit<Subscription, 'id'> = {
-            userId: user.uid,
-            active: true,
-            frequency: 'monthly',
-            nextDelivery: nextDeliveryDate.toISOString(),
-            items: defaultItems,
-            createdAt: serverTimestamp(),
-        };
-
-        try {
-            const subRef = doc(db, 'subscriptions', user.uid);
-            await setDoc(subRef, defaultSubscription);
-            
-            // Refetch all data to ensure consistency
-            await fetchSubscriptionData();
-
-            toast({
-                title: "Subscription Started!",
-                description: "Your Gritbox is now active."
-            });
-        } catch (error) {
-            console.error("Error creating subscription:", error);
-            toast({
-                title: "Error",
-                description: "Could not start your subscription. Please try again.",
-                variant: "destructive",
-            });
-        } finally {
-            setIsCreating(false);
-        }
-    };
     
     const handleFrequencyChange = () => {
         if (!user || !subscription) return;
@@ -233,6 +189,12 @@ export default function SubscriptionsPage() {
         fetchSubscriptionData();
     };
 
+    const handleCreateSuccess = () => {
+        setIsCreateModalOpen(false);
+        fetchSubscriptionData();
+    };
+
+
     if (isLoading) {
         return (
             <Card className="bg-card border-border/50">
@@ -249,19 +211,28 @@ export default function SubscriptionsPage() {
     
     if (!subscription) {
         return (
-             <Card className="bg-card border-border/50">
-                <CardHeader>
-                    <CardTitle className="font-headline uppercase text-2xl">Gritbox Subscription</CardTitle>
-                    <CardDescription>Manage your monthly soap delivery.</CardDescription>
-                </CardHeader>
-                <CardContent className="text-center py-12 text-muted-foreground">
-                    <p>You do not have an active subscription.</p>
-                    <Button className="mt-4" onClick={createDefaultSubscription} disabled={isCreating}>
-                        {isCreating && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
-                        Start a Gritbox Subscription
-                    </Button>
-                </CardContent>
-            </Card>
+             <Dialog open={isCreateModalOpen} onOpenChange={setIsCreateModalOpen}>
+                <Card className="bg-card border-border/50">
+                    <CardHeader>
+                        <CardTitle className="font-headline uppercase text-2xl">Gritbox Subscription</CardTitle>
+                        <CardDescription>Manage your monthly soap delivery.</CardDescription>
+                    </CardHeader>
+                    <CardContent className="text-center py-12 text-muted-foreground">
+                        <p>You do not have an active subscription.</p>
+                        <Button className="mt-4" onClick={() => setIsCreateModalOpen(true)}>
+                            Start a Gritbox Subscription
+                        </Button>
+                    </CardContent>
+                </Card>
+                
+                {allProducts.length > 0 && (
+                    <CreateSubscriptionModal
+                        allProducts={allProducts}
+                        onSuccess={handleCreateSuccess}
+                        onClose={() => setIsCreateModalOpen(false)}
+                    />
+                )}
+            </Dialog>
         );
     }
 
